@@ -1,22 +1,23 @@
-# Compiladores
-Código para la materia Compiladores de [LCC](https://dcc.fceia.unr.edu.ar), [FCEIA](https://www.fceia.unr.edu.ar), [UNR](https://www.unr.edu.ar).
 
-Este es el código a partir del cual los estudiantes empiezan a desarrollar un compilador.
+# CompilerPCF
+A compiler for PCF, for the compilers course of Computer Science[(LCC)](https://dcc.fceia.unr.edu.ar), [FCEIA](https://www.fceia.unr.edu.ar), [UNR](https://www.unr.edu.ar).
 
-Para fijar la versión de GHC y de los paquetes usaremos la herramienta [stack](https://docs.haskellstack.org/en/stable/README/).
 
-Los pasos para instalar son:
+Setup is done via [stack](https://docs.haskellstack.org/en/stable/README/).
+
+Installation:
 
 ```code
 stack setup
 stack build
 ```
 
-Luego se puede ejecutar con 
+Usage:
+run with 
 ```code
 stack run
 ```
-o cargar el entorno interactivo GHCi
+or use interactively
 ```code
 stack ghci
 
