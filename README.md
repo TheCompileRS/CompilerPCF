@@ -1,6 +1,6 @@
 
 # CompilerPCF
-A compiler for PCF, for the compilers course of Computer Science[(LCC)](https://dcc.fceia.unr.edu.ar), [FCEIA](https://www.fceia.unr.edu.ar), [UNR](https://www.unr.edu.ar).
+A compiler for PCF, for the compilers course of Computer Science [(LCC)](https://dcc.fceia.unr.edu.ar), [FCEIA](https://www.fceia.unr.edu.ar), [UNR](https://www.unr.edu.ar).
 
 
 Setup is done via [stack](https://docs.haskellstack.org/en/stable/README/).

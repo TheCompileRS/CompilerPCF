@@ -51,7 +51,7 @@ Las mónadas @m@ de esta clase cuentan con las operaciones:
    - @liftIO :: IO a -> m a@
 
 y otras operaciones derivadas de ellas, como por ejemplo
-   - @modify :: (GlEnv -> GlEnv) -> m ()
+   - @modify :: (GlEnv -> GlEnv) -> m ()@
 
 -}
 class (MonadIO m, MonadState GlEnv m, MonadError Error m) => MonadPCF m where
@@ -105,7 +105,7 @@ type PCF = StateT GlEnv (ExceptT Error IO)
 -- | Esta es una instancia vacía, ya que 'MonadPCF' no tiene funciones miembro.
 instance MonadPCF PCF
 
--- 'runPCF\'' corre una computación de la mónad 'PCF' en el estado inicial 'Global.initialEnv' 
+-- 'runPCF\'' corre una computación de la mónada 'PCF' en el estado inicial 'Global.initialEnv' 
 runPCF' :: PCF a -> IO (Either Error (a, GlEnv))
 runPCF' c =  runExceptT $ runStateT c initialEnv
 
