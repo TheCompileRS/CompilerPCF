@@ -39,6 +39,24 @@ data Decl a =
     Decl { declPos :: Pos, declName :: Name, declBody :: a }
   deriving (Show,Functor)
 
+-- | AST de los términos azucarados 
+--   - info es información extra que puede llevar cada nodo. 
+--       Por ahora solo la usamos para guardar posiciones en el código fuente.
+-- los constructores que comienzan con S son azucarados y los que comienzan con B se corresponden con los de Tm
+data STm info = SLet info Name Ty (STm info) (STm info)                   -- ^ let x : s = t in t'
+              | SLetLam info Name Ty [([Name], Ty)] (STm info) (STm info) -- ^ let f (x1 : s1) ... (xn : sn) : s' = t in t'
+              | SLetFix info Name Ty [([Name], Ty)] (STm info) (STm info) -- ^ let rec f (x1 : s1) ... (xn : sn) : s' = t in t'
+              | SLam info [([Name], Ty)] (STm info)                       -- ^ fun (x1 : s1) ... (xn : sn) -> t
+              | BV info Name
+              | BConst info Const
+              | BApp info (STm info) (STm info)
+              | BUnaryOp info UnaryOp (STm info)
+              | BFix info Name Ty Name Ty (STm info)
+              | BIfZ info (STm info) (STm info) (STm info)
+    deriving (Show)
+
+type STerm = STm Pos       -- ^ 'STm' tiene 'Name's como variables ligadas y libres, guarda posición. Admite azúcar sintáctico
+
 -- | AST de los términos. 
 --   - info es información extra que puede llevar cada nodo. 
 --       Por ahora solo la usamos para guardar posiciones en el código fuente.
