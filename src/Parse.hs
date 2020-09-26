@@ -152,7 +152,7 @@ letIn :: P STerm
 letIn = do 
      i <- getPos
      reserved "let"
-     (v, ty) <- parens binding
+     (v, ty) <- binding
      reservedOp "="
      t1 <- tm
      reserved "in"
@@ -235,7 +235,7 @@ program = many decl
 -- | Parsea una declaración a un término
 -- Útil para las sesiones interactivas
 declOrTm :: P (Either (Decl STerm) STerm)
-declOrTm =  try (Left <$> decl) <|> (Right <$> tm)
+declOrTm =  try (Right <$> tm) <|> (Left <$> decl) 
 
 -- Corre un parser, chequeando que se pueda consumir toda la entrada
 runP :: P a -> String -> String -> Either ParseError a
