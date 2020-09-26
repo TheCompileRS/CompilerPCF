@@ -28,7 +28,7 @@ lexer = Tok.makeTokenParser $
         emptyDef {
          commentLine    = "#",
          reservedNames = ["let", "fun", "fix", "then", "else", 
-                          "succ", "pred", "ifz", "Nat"],
+                          "succ", "pred", "ifz", "Nat", "rec", "in"],
          reservedOpNames = ["->",":","="]
         }
 
@@ -79,7 +79,7 @@ typeP = try (do
 const :: P Const
 const = CNat <$> num
 
-unaryOp :: P NTerm
+unaryOp :: P STerm
 unaryOp = do
   i <- getPos
   foldr (\(w, r) rest -> try (do 
@@ -88,35 +88,31 @@ unaryOp = do
                                  return (r a)) <|> rest) parserZero (mapping i)
   where
    mapping i = [
-       ("succ", UnaryOp i Succ)
-     , ("pred", UnaryOp i Pred)
+       ("succ", BUnaryOp i Succ)
+     , ("pred", BUnaryOp i Pred)
     ]
 
-atom :: P NTerm
-atom =     (flip Const <$> const <*> getPos)
-       <|> flip V <$> var <*> getPos
+atom :: P STerm
+atom =     (flip BConst <$> const <*> getPos)
+       <|> flip BV <$> var <*> getPos
        <|> parens tm
 
-lam :: P NTerm
+lam :: P STerm
 lam = do i <- getPos
          reserved "fun"
-         (v,ty) <- parens $ do 
-                    v <- var
-                    reservedOp ":"
-                    ty <- typeP 
-                    return (v,ty)
+         bs <- multibinding
          reservedOp "->"
          t <- tm
-         return (Lam i v ty t)
+         return $ SLam i bs t
 
 -- Nota el parser app también parsea un solo atom.
-app :: P NTerm
-app = (do i <- getPos
+app :: P STerm
+app = do  i <- getPos
           f <- atom
           args <- many atom
-          return (foldl (App i) f args))
+          return $ foldl (BApp i) f args
 
-ifz :: P NTerm
+ifz :: P STerm
 ifz = do i <- getPos
          reserved "ifz"
          c <- tm
@@ -124,7 +120,7 @@ ifz = do i <- getPos
          t <- tm
          reserved "else"
          e <- tm
-         return (IfZ i c t e)
+         return $ BIfZ i c t e
 
 binding :: P (Name, Ty)
 binding = do v <- var
@@ -132,36 +128,113 @@ binding = do v <- var
              ty <- typeP
              return (v, ty)
 
-fix :: P NTerm
+multibinding :: P [([Name], Ty)]
+multibinding = many1 $ parens $ 
+        do  xs <- many1 var
+            reservedOp ":"
+            t  <- typeP
+            return (xs, t)
+
+fix :: P STerm
 fix = do i <- getPos
          reserved "fix"
          (f, fty) <- parens binding
-         (x, xty) <- parens binding
+         bs <- multibinding
          reservedOp "->"
          t <- tm
-         return (Fix i f fty x xty t)
+         return (BFix i f fty bs t)
 
 -- | Parser de términos
-tm :: P NTerm
-tm = app <|> lam <|> ifz <|> unaryOp <|> fix
+tm :: P STerm
+tm = app <|> lam <|> ifz <|> unaryOp <|> fix <|> try letFix <|> try letIn <|> letLam   
 
--- | Parser de declaraciones
-decl :: P (Decl NTerm)
-decl = do 
+letIn :: P STerm
+letIn = do 
      i <- getPos
      reserved "let"
-     v <- var
+     (v, ty) <- parens binding
      reservedOp "="
-     t <- tm
-     return (Decl i v t)
+     t1 <- tm
+     reserved "in"
+     t2 <- tm
+     return (SLet i v ty t1 t2)
+
+letLam :: P STerm
+letLam = do 
+      i <- getPos
+      reserved "let"
+      f <- var
+      bs <- multibinding
+      reservedOp ":"
+      fty  <- typeP
+      reservedOp "="
+      t1 <- tm
+      reserved "in"
+      t2 <- tm
+      return (SLetLam i f fty bs t1 t2)
+
+letFix :: P STerm
+letFix = do 
+      i <- getPos
+      reserved "let"
+      reserved "rec"
+      f <- var
+      bs <- multibinding
+      reservedOp ":"
+      fty  <- typeP
+      reservedOp "="
+      t1 <- tm
+      reserved "in"
+      t2 <- tm
+      return (SLetFix i f fty bs t1 t2)
+
+-- | Parser de declaraciones
+decl :: P (Decl STerm)
+decl = try declFix <|> try declLet <|> declLam 
+
+declLet :: P (Decl STerm)
+declLet = do 
+      i <- getPos
+      reserved "let"
+      v <- var
+      reservedOp ":"
+      ty  <- typeP
+      reservedOp "="
+      t <- tm
+      return (Decl i v ty t)
+
+declLam :: P (Decl STerm)
+declLam = do 
+      i <- getPos
+      reserved "let"
+      f <- var
+      bs <- multibinding
+      reservedOp ":"
+      ty  <- typeP
+      reservedOp "="
+      t <- tm
+      return (Decl i f ty (SLam i bs t))
+
+declFix :: P (Decl STerm)
+declFix = do 
+      i <- getPos
+      reserved "let"
+      reserved "rec"
+      f <- var
+      bs <- multibinding
+      reservedOp ":"
+      ty  <- typeP
+      reservedOp "="
+      t <- tm
+      return (Decl i f ty (BFix i f ty bs t))
 
 -- | Parser de programas (listas de declaraciones) 
-program :: P [Decl NTerm]
+program :: P [Decl STerm]
 program = many decl
 
 -- | Parsea una declaración a un término
 -- Útil para las sesiones interactivas
-declOrTm :: P (Either (Decl NTerm) NTerm)
+declOrTm :: P (Either (Decl STerm) STerm)
 declOrTm =  try (Left <$> decl) <|> (Right <$> tm)
 
 -- Corre un parser, chequeando que se pueda consumir toda la entrada
@@ -169,7 +242,7 @@ runP :: P a -> String -> String -> Either ParseError a
 runP p s filename = runParser (whiteSpace *> p <* eof) () filename s
 
 --para debugging en uso interactivo (ghci)
-parse :: String -> NTerm
-parse s = case runP tm s "" of
+parse :: String -> (Either (Decl STerm) STerm)
+parse s = case runP declOrTm s "" of
             Right t -> t
             Left e -> error ("no parse: " ++ show s)

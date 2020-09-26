@@ -27,3 +27,19 @@ elab (UnaryOp i o t)       = UnaryOp i o (elab t)
 
 elab_decl :: Decl NTerm -> Decl Term
 elab_decl = fmap elab
+
+-- | 'desugar' transforma términos azucarados en términos PCF0
+desugar :: STerm -> NTerm
+desugar term = case term of
+    -- sugared
+    SLet i x xt t1 t2       -> undefined
+    SLetLam i f ft bs t1 t2 -> undefined
+    SLetFix i f ft bs t1 t2 -> undefined
+    SLam i bs t             -> undefined
+    -- base
+    BV i x              -> V i x
+    BConst i v          -> Const i v
+    BApp i t1 t2        -> App i (desugar t1) (desugar t2)
+    BUnaryOp i op t     -> UnaryOp i op (desugar t)
+    BFix i f ft bs t    -> undefined
+    BIfZ i t1 t2 t3     -> IfZ i (desugar t1) (desugar t2) (desugar t3)

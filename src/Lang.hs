@@ -35,7 +35,7 @@ data UnaryOp = Succ | Pred
 
 -- | tipo de datos de declaraciones, parametrizado por el tipo del cuerpo de la declaración
 data Decl a =
-    Decl { declPos :: Pos, declName :: Name, declBody :: a }
+    Decl { declPos :: Pos, declName :: Name, declType :: Ty, declBody :: a }
   deriving (Show,Functor)
 
 -- | AST de los términos azucarados 
@@ -50,7 +50,7 @@ data STm info = SLet info Name Ty (STm info) (STm info)                   -- ^ l
               | BConst info Const
               | BApp info (STm info) (STm info)
               | BUnaryOp info UnaryOp (STm info)
-              | BFix info Name Ty Name Ty (STm info)
+              | BFix info Name Ty [([Name], Ty)] (STm info)
               | BIfZ info (STm info) (STm info) (STm info)
     deriving (Show)
 
