@@ -3,7 +3,6 @@ Module      : Eval
 Description : Evalúa un término siguiendo la semántica big-step
 Copyright   : (c) Mauro Jaskelioff, Guido Martínez, 2020.
 License     : GPL-3
-Maintainer  : mauro@fceia.unr.edu.ar
 Stability   : experimental
 
 Este módulo evaluá términos siguiendo la semántica big-step (estrategia CBV)

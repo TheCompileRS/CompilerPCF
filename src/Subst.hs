@@ -1,9 +1,8 @@
 {-|
 Module      : Subst
 Description : Define las operaciones de la representacion locally nameless
-Copyright   : (c) Mauro Jaskelioff, Guido Martínez, 2020.
+Copyright   : (c) Mauro Jaskelioff, Guido Martínez, Roman Castellarin, Sebastián Zimmermann 2020.
 License     : GPL-3
-Maintainer  : mauro@fceia.unr.edu.ar
 Stability   : experimental
 
 Este módulo define las operaciones de la representacion locally nameless,

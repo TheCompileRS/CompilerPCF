@@ -5,9 +5,8 @@
 {-|
 Module      : MonadPCF
 Description : Mónada con soporte para estado, errores, e IO.
-Copyright   : (c) Mauro Jaskelioff, Guido Martínez, 2020.
+Copyright   : (c) Mauro Jaskelioff, Guido Martínez, Roman Castellarin, Sebastián Zimmermann 2020.
 License     : GPL-3
-Maintainer  : mauro@fceia.unr.edu.ar
 Stability   : experimental
 
 Definimos la clase de mónadas 'MonadPCF' que abstrae las mónadas con soporte para estado, errores e IO,
