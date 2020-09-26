@@ -1,9 +1,8 @@
 {-|
 Module      : Parse
 Description : Define un parser de términos PCF0 a términos fully named.
-Copyright   : (c) Mauro Jaskelioff, Guido Martínez, 2020.
+Copyright   : (c) Mauro Jaskelioff, Guido Martínez, Roman Castellarin, Sebastián Zimmermann 2020.
 License     : GPL-3
-Maintainer  : mauro@fceia.unr.edu.ar
 Stability   : experimental
 
 -}
