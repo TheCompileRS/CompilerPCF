@@ -26,10 +26,13 @@ type P = Parsec String ()
 lexer :: Tok.TokenParser u
 lexer = Tok.makeTokenParser $
         emptyDef {
+         commentStart  = "{-",
+         commentEnd    = "-}",
          commentLine    = "#",
          reservedNames = ["let", "fun", "fix", "then", "else", 
                           "succ", "pred", "ifz", "Nat", "rec", "in"],
-         reservedOpNames = ["->",":","="]
+         reservedOpNames = ["->",":","="],
+         caseSensitive = True
         }
 
 whiteSpace :: P ()
