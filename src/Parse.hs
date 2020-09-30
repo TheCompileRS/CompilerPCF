@@ -145,7 +145,7 @@ fix = do i <- getPos
          bs <- multibinding
          reservedOp "->"
          t <- tm
-         return (BFix i f fty bs t)
+         return (SFix i f fty bs t)
 
 -- | Parser de términos
 tm :: P STerm
@@ -229,7 +229,7 @@ declFix = do
       ty  <- typeP
       reservedOp "="
       t <- tm
-      return (Decl i f ty (BFix i f ty bs t))
+      return (Decl i f ty (SFix i f ty bs t))
 
 -- | Parser de programas (listas de declaraciones) 
 program :: P [Decl STerm]

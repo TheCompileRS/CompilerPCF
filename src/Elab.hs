@@ -14,32 +14,55 @@ module Elab ( elab, elab_decl ) where
 import Lang
 import Subst
 
--- | 'elab' transforma variables ligadas en índices de de Bruijn
--- en un término dado. 
-elab :: NTerm -> Term
-elab (V p v)               = V p (Free v)
-elab (Const p c)           = Const p c
-elab (Lam p v ty t)        = Lam p v ty (close v (elab t))
-elab (App p h a)           = App p (elab h) (elab a)
-elab (Fix p f fty x xty t) = Fix p f fty x xty (closeN [f, x] (elab t))
-elab (IfZ p c t e)         = IfZ p (elab c) (elab t) (elab e)
-elab (UnaryOp i o t)       = UnaryOp i o (elab t)
 
-elab_decl :: Decl NTerm -> Decl Term
+-- | 'elab' elabora términos azucarados 
+elab :: STerm -> Term
+elab = elab_ . desugar
+
+-- | 'elab_' transforma variables ligadas en índices de de Bruijn
+-- en un término dado. 
+elab_ :: NTerm -> Term
+elab_ (V p v)               = V p (Free v)
+elab_ (Const p c)           = Const p c
+elab_ (Lam p v ty t)        = Lam p v ty (close v (elab_ t))
+elab_ (App p h a)           = App p (elab_ h) (elab_ a)
+elab_ (Fix p f fty x xty t) = Fix p f fty x xty (closeN [f, x] (elab_ t))
+elab_ (IfZ p c t e)         = IfZ p (elab_ c) (elab_ t) (elab_ e)
+elab_ (UnaryOp i o t)       = UnaryOp i o (elab_ t)
+
+elab_decl :: Decl STerm -> Decl Term
 elab_decl = fmap elab
 
 -- | 'desugar' transforma términos azucarados en términos PCF0
 desugar :: STerm -> NTerm
 desugar term = case term of
     -- sugared
-    SLet i x xt t1 t2       -> undefined
-    SLetLam i f ft bs t1 t2 -> undefined
-    SLetFix i f ft bs t1 t2 -> undefined
-    SLam i bs t             -> undefined
+    SLet i x xt t1 t2           -> App i (Lam i x xt (desugar t2)) (desugar t1)
+
+    SLetLam i f ft bs t1 t2     -> let bs' = expandBinders bs
+                                   in desugar $ SLet i f (foldr chainTypes ft bs') (SLam i bs t1) t2
+
+    SLetFix i f ft bs t1 t2     -> let ft' = (foldr chainTypes ft $ expandBinders bs)
+                                   in desugar $ SLet i f ft' (SFix i f ft' bs t1) t2
+
+    SLam i bs t                 -> foldr (constructFun i) (desugar t) (expandBinders bs)
+
+    SFix i f ft bs t            -> let (x,xt):rest = expandBinders bs
+                                   in Fix i f ft x xt $ foldr (constructFun i) (desugar t) rest
     -- base
     BV i x              -> V i x
     BConst i v          -> Const i v
     BApp i t1 t2        -> App i (desugar t1) (desugar t2)
     BUnaryOp i op t     -> UnaryOp i op (desugar t)
-    BFix i f ft bs t    -> undefined
+    
     BIfZ i t1 t2 t3     -> IfZ i (desugar t1) (desugar t2) (desugar t3)
+  where
+      constructFun :: info -> (Name, Ty) -> Tm info var -> Tm info var
+      constructFun i (var, ty) t = Lam i var ty t
+
+      expandBinders :: [([Name], Ty)] -> [(Name, Ty)]
+      expandBinders bs = bs >>= \(vars, ty) -> flip (,) ty <$> vars 
+
+      chainTypes :: (Name, Ty) -> Ty -> Ty 
+      chainTypes (_, ty1) ty2 = FunTy ty1 ty2 
+

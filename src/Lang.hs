@@ -23,6 +23,7 @@ import Common ( Pos )
 data Ty = 
       NatTy 
     | FunTy Ty Ty
+  -- | NamedType Name Ty
     deriving (Show,Eq)
 
 type Name = String
@@ -46,11 +47,11 @@ data STm info = SLet info Name Ty (STm info) (STm info)                   -- ^ l
               | SLetLam info Name Ty [([Name], Ty)] (STm info) (STm info) -- ^ let f (x1 : s1) ... (xn : sn) : s' = t in t'
               | SLetFix info Name Ty [([Name], Ty)] (STm info) (STm info) -- ^ let rec f (x1 : s1) ... (xn : sn) : s' = t in t'
               | SLam info [([Name], Ty)] (STm info)                       -- ^ fun (x1 : s1) ... (xn : sn) -> t
+              | SFix info Name Ty [([Name], Ty)] (STm info)               -- ^ fix f (x1 : s1) ... (xn : sn) -> t
               | BV info Name
               | BConst info Const
               | BApp info (STm info) (STm info)
               | BUnaryOp info UnaryOp (STm info)
-              | BFix info Name Ty [([Name], Ty)] (STm info)
               | BIfZ info (STm info) (STm info) (STm info)
     deriving (Show)
 

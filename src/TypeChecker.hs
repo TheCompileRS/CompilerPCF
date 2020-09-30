@@ -83,12 +83,14 @@ domCod t ty = typeError t $ "Se esperaba un tipo función, pero se obtuvo: " ++ 
 -- | 'tcDecl' chequea el tipo de una declaración
 -- y la agrega al entorno de tipado de declaraciones globales
 tcDecl :: MonadPCF m  => Decl Term -> m ()
-tcDecl (Decl p n t) = do
+tcDecl (Decl p n nty t) = do
     --chequear si el nombre ya está declarado
     mty <- lookupTy n
     case mty of
         Nothing -> do  --no está declarado 
                   s <- get
-                  ty <- tc t (tyEnv s)                 
-                  addTy n ty
+                  ty <- tc t (tyEnv s)
+                  if ty == nty 
+                    then addTy n ty
+                    else typeError t $ "Se esperaba un tipo " ++ ppTy nty ++  ", pero se obtuvo: " ++ ppTy ty
         Just _  -> failPosPCF p $ n ++" ya está declarado"
