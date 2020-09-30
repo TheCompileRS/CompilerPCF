@@ -82,12 +82,12 @@ parseIO filename p x = case runP p x filename of
                   Left e  -> throwError (ParseErr e)
                   Right r -> return r
 
-handleDecl ::  MonadPCF m => Decl NTerm -> m ()
-handleDecl (Decl p x t) = do
+handleDecl ::  MonadPCF m => Decl STerm -> m ()
+handleDecl (Decl p x ty t) = do
         let tt = elab t
-        tcDecl (Decl p x tt)    
+        tcDecl (Decl p x ty tt)    
         te <- eval tt
-        addDecl (Decl p x te)
+        addDecl (Decl p x ty te)
 
 data Command = Compile CompileForm
              | Print String
@@ -169,7 +169,7 @@ compilePhrase x =
       Left d  -> handleDecl d
       Right t -> handleTerm t
 
-handleTerm ::  MonadPCF m => NTerm -> m ()
+handleTerm ::  MonadPCF m => STerm -> m ()
 handleTerm t = do
          let tt = elab t
          s <- get
@@ -183,8 +183,8 @@ printPhrase x =
     x' <- parseIO "<interactive>" tm x
     let ex = elab x'
     t  <- case x' of 
-           (V p f) -> maybe ex id <$> lookupDecl f
-           _       -> return ex  
+           (BV p f) -> maybe ex id <$> lookupDecl f
+           _        -> return ex  
     printPCF "NTerm:"
     printPCF (show x')
     printPCF "\nTerm:"

@@ -23,7 +23,6 @@ import Common ( Pos )
 data Ty = 
       NatTy 
     | FunTy Ty Ty
-  -- | NamedType Name Ty
     deriving (Show,Eq)
 
 type Name = String

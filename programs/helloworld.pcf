@@ -1,22 +1,26 @@
 # base
-let suma = fix (f: Nat -> Nat -> Nat) (x: Nat) -> fun (y: Nat) -> ifz y then x else succ (f x (pred y))
-let resta = fix (f: Nat -> Nat -> Nat) (x: Nat) -> fun (y: Nat) -> ifz y then x else pred (f x (pred y))
-let mult = fix (f: Nat -> Nat -> Nat) (x: Nat) -> fun (y: Nat) -> ifz y then 0 else suma (f x (pred y)) x
-let exp = fix (f: Nat -> Nat -> Nat) (x: Nat) -> fun (y: Nat) -> ifz y then 1 else mult (f x (pred y)) x
-let fact = fix (f: Nat -> Nat) (n: Nat) -> ifz n then 1 else mult n (f (pred n))
+let suma  : Nat -> Nat -> Nat  = fix (f: Nat -> Nat -> Nat) (x y: Nat) -> ifz y then x else succ (f x (pred y))
+let resta : Nat -> Nat -> Nat  = fix (f: Nat -> Nat -> Nat) (x y: Nat) -> ifz y then x else pred (f x (pred y))
+let mult  : Nat -> Nat -> Nat  = fix (f: Nat -> Nat -> Nat) (x y: Nat) -> ifz y then 0 else suma (f x (pred y)) x
+let exp   : Nat -> Nat -> Nat  = fix (f: Nat -> Nat -> Nat) (x y: Nat) -> ifz y then 1 else mult (f x (pred y)) x
+let fact  : Nat -> Nat         = fix (f: Nat -> Nat) (n: Nat) -> ifz n then 1 else mult n (f (pred n))
 
 # booleanos
-let true = 1
-let false = 0
-let neg = fun (b: Nat) -> ifz b then true else false
+let true  : Nat = 1
+let false : Nat = 0
+let neg   : Nat -> Nat = fun (b: Nat) -> ifz b then true else false
 
 # pares de naturales
-let pairNat = fun (x: Nat) -> fun (y: Nat) -> fun (b: Nat) -> ifz b then x else y   
-let fstNat = fun (p: Nat -> Nat) -> p false
-let sndNat = fun (p: Nat -> Nat) -> p true
+let pairNat : Nat -> Nat -> Nat -> Nat = fun (x y b: Nat) -> ifz b then x else y   
+let fstNat  : (Nat -> Nat) -> Nat      = fun (p: Nat -> Nat) -> p false
+let sndNat  : (Nat -> Nat) -> Nat      = fun (p: Nat -> Nat) -> p true
 
 # R para naturales
-let RNat = fun (z: Nat) -> fun(s: Nat -> Nat -> Nat) -> fix (f: Nat -> Nat) (n: Nat) -> ifz n then z else s (f (pred n)) (pred n)
+let RNat : Nat -> (Nat -> Nat -> Nat) -> Nat -> Nat 
+         = fun (z: Nat) (s: Nat -> Nat -> Nat) -> 
+               fix (f: Nat -> Nat) (n: Nat) -> 
+                   ifz n then z else s (f (pred n)) (pred n)
 
 # minimizador
-let mu = fun (f: Nat -> Nat) -> (fix (try: Nat -> Nat) (n: Nat) -> ifz f n then n else try (succ n)) 0
+let mu : (Nat -> Nat) -> Nat 
+       = fun (f: Nat -> Nat) -> (fix (try: Nat -> Nat) (n: Nat) -> ifz f n then n else try (succ n)) 0
