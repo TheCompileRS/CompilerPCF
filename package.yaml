@@ -26,6 +26,8 @@ dependencies:
 - pretty
 - mtl
 - exceptions
+- hspec
+- QuickCheck
 
 
 library:
