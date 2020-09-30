@@ -10,4 +10,4 @@
 	- ~Parse PCF1 terms~
 	- Desugar function
 	- Change main to support STerm terms
-	- 
+	- Should Types and Terms have different namespaces ??

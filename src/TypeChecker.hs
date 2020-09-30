@@ -90,7 +90,6 @@ tcDecl (Decl p n nty t) = do
         Nothing -> do  --no está declarado 
                   s <- get
                   ty <- tc t (tyEnv s)
-                  if ty == nty 
-                    then addTy n ty
-                    else typeError t $ "Se esperaba un tipo " ++ ppTy nty ++  ", pero se obtuvo: " ++ ppTy ty
+                  expect nty ty t
+                  addTy n ty
         Just _  -> failPosPCF p $ n ++" ya está declarado"
