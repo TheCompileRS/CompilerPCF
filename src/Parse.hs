@@ -85,20 +85,35 @@ const = CNat <$> num
 unaryOp :: P STerm
 unaryOp = do
   i <- getPos
-  foldr (\(w, r) rest -> try (do 
-                                 reserved w
-                                 a <- atom
-                                 return (r a)) <|> rest) parserZero (mapping i)
+  foldr (reduceOp i) parserZero (mapping i)
   where
    mapping i = [
        ("succ", BUnaryOp i Succ)
      , ("pred", BUnaryOp i Pred)
     ]
+   reduceOp i (w, r) rest = try $ do
+                                 reserved w
+                                 a <- atom
+                                 return (r a) 
+                            <|> rest
 
 atom :: P STerm
 atom =     (flip BConst <$> const <*> getPos)
        <|> flip BV <$> var <*> getPos
        <|> parens tm
+       <|> eta_expansion
+
+eta_expansion :: P STerm
+eta_expansion = do 
+            i <- getPos
+            a <- choice (mapping i)
+            return $ SLam i [(["x"], NatTy)] (a $ BV i "x")
+  where
+        mapping i = [
+              reserved "succ" *> return (BUnaryOp i Succ)
+            , reserved "pred" *> return (BUnaryOp i Pred)
+            ]
+
 
 lam :: P STerm
 lam = do i <- getPos
