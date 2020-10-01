@@ -13,11 +13,10 @@ module PPrint (
     ppName
     ) where
 
-import Prelude hiding ((<>))
-import Common
 import Lang
-import Subst
+import Subst ( openN )
 import Text.PrettyPrint
+    ( (<+>), nest, parens, render, sep, text, Doc )
 
 -- Como `openN`, pero cambia el nombre si genera shadowing. Nota:
 -- esto es rídiculamente ineficiente si los términos empiezan a ser
@@ -26,7 +25,7 @@ openRename :: [Name] -> Term -> ([Name], Term)
 openRename ns t =
   let fs = freeVars t in
   let freshen n = let cands = n : (map (\i -> n ++ show i) [0..]) in
-                  let n' = head (filter (\n -> not (elem n fs)) cands) in
+                  let n' = head (filter (\m -> not (elem m fs)) cands) in
                   n'
   in
   let fresh_ns = map freshen ns in
@@ -78,7 +77,7 @@ unary2doc Pred = text "pred"
 
 collectApp :: NTerm -> (NTerm, [NTerm])
 collectApp t = go [] t where
-  go ts (App _ h t) = go (t:ts) h
+  go ts (App _ h tt) = go (tt:ts) h
   go ts h = (h, ts)
 
 parenIf :: Bool -> Doc -> Doc
@@ -120,6 +119,7 @@ t2doc at (UnaryOp _ o t) =
   parenIf at $
   unary2doc o <+> t2doc True t
 
+binding2doc :: (Name, Ty) -> Doc
 binding2doc (x, ty) =
   parens (sep [name2doc x, text ":", ty2doc ty])
 
