@@ -27,7 +27,7 @@ import Global ( GlEnv(..) )
 import Errors
 import Lang
 import Parse ( P, tm, program, declOrTm, runP )
-import Elab ( elab )
+import Elab ( elab, elab_decl )
 import Eval ( eval )
 import PPrint ( pp , ppTy )
 import MonadPCF
@@ -82,10 +82,10 @@ parseIO filename p x = case runP p x filename of
                   Left e  -> throwError (ParseErr e)
                   Right r -> return r
 
-handleDecl ::  MonadPCF m => Decl STerm -> m ()
-handleDecl (Decl p x ty t) = do
-        let tt = elab t
-        tcDecl (Decl p x ty tt)    
+handleDecl ::  MonadPCF m => SDecl STerm -> m ()
+handleDecl decl = case elab_decl decl of 
+  Decl p x ty tt -> do
+        tcDecl (Decl p x ty tt)
         te <- eval tt
         addDecl (Decl p x ty te)
 

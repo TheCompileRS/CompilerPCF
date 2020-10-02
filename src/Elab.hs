@@ -30,8 +30,25 @@ elab_ (Fix p f fty x xty t) = Fix p f fty x xty (closeN [f, x] (elab_ t))
 elab_ (IfZ p c t e)         = IfZ p (elab_ c) (elab_ t) (elab_ e)
 elab_ (UnaryOp i o t)       = UnaryOp i o (elab_ t)
 
-elab_decl :: Decl STerm -> Decl Term
-elab_decl = fmap elab
+
+elab_decl :: SDecl STerm -> Decl Term
+elab_decl = fmap elab . desugar_decl
+
+desugar_decl :: SDecl STerm -> Decl STerm
+desugar_decl decl = case decl of
+    SDecl p x ty t       -> Decl p x ty t
+    SDeclLam p f ft bs t -> Decl p f (foldr chainTypes ft $ expandBinders bs) (SLam p bs t)
+    SDeclFix p f ft bs t -> let ft' = foldr chainTypes ft $ expandBinders bs
+                            in Decl p f ft' (SFix p f ft' bs t)
+
+expandBinders :: MultiBinder -> [(Name, Ty)]
+expandBinders bs = bs >>= \(vars, ty) -> flip (,) ty <$> vars 
+
+chainTypes :: (Name, Ty) -> Ty -> Ty 
+chainTypes (_, ty1) ty2 = FunTy ty1 ty2
+
+constructFun :: info -> (Name, Ty) -> Tm info var -> Tm info var
+constructFun i (var, ty) t = Lam i var ty t
 
 -- | 'desugar' transforma términos azucarados en términos PCF0
 desugar :: STerm -> NTerm
@@ -56,13 +73,5 @@ desugar term = case term of
     BUnaryOp i op t     -> UnaryOp i op (desugar t)
     
     BIfZ i t1 t2 t3     -> IfZ i (desugar t1) (desugar t2) (desugar t3)
-  where
-      constructFun :: info -> (Name, Ty) -> Tm info var -> Tm info var
-      constructFun i (var, ty) t = Lam i var ty t
-
-      expandBinders :: [([Name], Ty)] -> [(Name, Ty)]
-      expandBinders bs = bs >>= \(vars, ty) -> flip (,) ty <$> vars 
-
-      chainTypes :: (Name, Ty) -> Ty -> Ty 
-      chainTypes (_, ty1) ty2 = FunTy ty1 ty2 
+      
 
