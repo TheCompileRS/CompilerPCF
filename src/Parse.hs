@@ -1,6 +1,6 @@
 {-|
 Module      : Parse
-Description : Define un parser de términos PCF0 a términos fully named.
+Description : Define un parser de términos PCF1 a términos azucarados, fully named.
 Copyright   : (c) Mauro Jaskelioff, Guido Martínez, Roman Castellarin, Sebastián Zimmermann 2020.
 License     : GPL-3
 Stability   : experimental
@@ -13,7 +13,7 @@ import Prelude hiding ( const )
 import Lang
 import Common
 import Text.Parsec hiding (runP)
-import Data.Char ( isNumber, ord )
+--import Data.Char ( isNumber, ord )
 import qualified Text.Parsec.Token as Tok
 import Text.ParserCombinators.Parsec.Language ( GenLanguageDef(..), emptyDef )
 

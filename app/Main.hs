@@ -46,7 +46,7 @@ main' args = do
         lift $ catchErrors $ compileFiles args
         s <- lift $ get
         when (inter s) $ liftIO $ putStrLn
-          (  "Entorno interactivo para PCF0.\n"
+          (  "Entorno interactivo para PCF1.\n"
           ++ "Escriba :? para recibir ayuda.")
         loop  
   where loop = do
@@ -185,7 +185,7 @@ printPhrase x =
     t  <- case x' of 
            (BV p f) -> maybe ex id <$> lookupDecl f
            _        -> return ex  
-    printPCF "NTerm:"
+    printPCF "STerm:"
     printPCF (show x')
     printPCF "\nTerm:"
     printPCF (show t)

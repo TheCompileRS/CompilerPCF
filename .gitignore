@@ -13,3 +13,4 @@ app/Main
 *.bbl
 compiladores.cabal
 
+programs/debug.pcf

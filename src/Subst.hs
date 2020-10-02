@@ -20,7 +20,7 @@ import Data.List ( elemIndex )
 varChanger :: (Int -> Pos -> Name -> Term) --que hacemos con las variables localmente libres
            -> (Int -> Pos -> Int ->  Term) --que hacemos con los indices de De Bruijn
            -> Term -> Term
-varChanger local bound t = go 0 t where
+varChanger local bound term = go 0 term where
   go n   (V p (Bound i)) = bound n p i
   go n   (V p (Free x)) = local n p x 
   go n (Lam p y ty t)   = Lam p y ty (go (n+1) t)
