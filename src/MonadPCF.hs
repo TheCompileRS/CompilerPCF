@@ -78,6 +78,14 @@ lookupTy nm = do
       s <- get
       return $ lookup nm (tyEnv s)
 
+addTyDef :: MonadPCF m => Name -> Ty -> m ()
+addTyDef n ty = modify (\s -> s { tyDefs = (n,ty) : tyDefs s })
+
+lookupTyDef :: MonadPCF m => Name -> m (Maybe Ty)
+lookupTyDef nm = do
+      s <- get
+      return $ lookup nm (tyDefs s)
+
 failPosPCF :: MonadPCF m => Pos -> String -> m a
 failPosPCF p s = throwError (ErrPos p s)
 
