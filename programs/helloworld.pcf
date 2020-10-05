@@ -6,9 +6,10 @@ let rec exp   (x y: Nat) : Nat = ifz y then 1 else mult (exp x (pred y)) x
 let rec fact  (n: Nat)   : Nat = ifz n then 1 else mult n (fact (pred n))
 
 # booleanos
-let true  : Nat = 1
-let false : Nat = 0
-let neg (b: Nat) : Nat = ifz b then true else false
+type Bool = Nat
+let true  : Bool = 1
+let false : Bool = 0
+let neg (b: Bool) : Bool = ifz b then true else false
 
 # pares de naturales
 let pairNat (x y b: Nat) : Nat = ifz b then x else y   

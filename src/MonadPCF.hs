@@ -18,6 +18,8 @@ module MonadPCF (
   runPCF,
   lookupDecl,
   lookupTy,
+  lookupTyDef,
+  addTyDef,
   printPCF,
   failPosPCF,
   failPCF,
@@ -57,13 +59,13 @@ class (MonadIO m, MonadState GlEnv m, MonadError Error m) => MonadPCF m where
 printPCF :: MonadPCF m => String -> m ()
 printPCF = liftIO . putStrLn
 
-addDecl :: MonadPCF m => Decl Term -> m ()
+addDecl :: MonadPCF m => Decl Ty Term -> m ()
 addDecl d = modify (\s -> s { glb = d : glb s })
   
 addTy :: MonadPCF m => Name -> Ty -> m ()
 addTy n ty = modify (\s -> s { tyEnv = (n,ty) : tyEnv s })
 
-hasName :: Name -> Decl a -> Bool
+hasName :: Name -> Decl Ty a -> Bool
 hasName nm (Decl { declName = nm' }) = nm == nm'
 
 lookupDecl :: MonadPCF m => Name -> m (Maybe Term)

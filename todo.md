@@ -1,5 +1,7 @@
 # Compiler
 	- Syntactic Sugar
+	- Testing
+	- Abstract Machines
 
 ## Preguntar:
 	- Nothing :D
@@ -8,6 +10,14 @@
 	- ~Parse PCF1 terms~
 	- ~Desugar function~
 	- ~Change main to support STerm terms~
-	- Type namespaces
-	- Eta-reduction
+	- ~Eta-reduction~
+	- ~Type namespaces~
 	- Types PrettyPrint 
+	- Parser for type names (uppercase + alphanum) (check reserved keywords)
+	- Beautify elab
+
+## Testing
+	- Testing
+
+## Abstract Machines
+	- read

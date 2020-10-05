@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveTraversable #-}
 {-# LANGUAGE DeriveFunctor #-}
 
 {-|
@@ -19,13 +20,19 @@ module Lang where
 
 import Common ( Pos )
 
+type Name = String
+
 -- | AST de Tipos
 data Ty = 
       NatTy 
     | FunTy Ty Ty
     deriving (Show,Eq)
 
-type Name = String
+data STy = 
+      SNatTy 
+    | SFunTy STy STy
+    | SSynTy Name
+    deriving (Show,Eq)
 
 data Const = CNat Int
   deriving Show
@@ -33,29 +40,30 @@ data Const = CNat Int
 data UnaryOp = Succ | Pred
   deriving Show
 
-type MultiBinder = [([Name], Ty)]
+type MultiBinder = [([Name], STy)]
 
 -- | tipo de datos de declaraciones azucaradas, parametrizado por el tipo del cuerpo de la declaración
 data SDecl a =
-    SDecl    { sDeclPos :: Pos, sDeclName :: Name, sDeclType :: Ty, sDeclBody :: a }
-  | SDeclLam { sDeclPos :: Pos, sDeclName :: Name, sDeclType :: Ty, sDeclBinders :: MultiBinder, sDeclBody :: a }
-  | SDeclFix { sDeclPos :: Pos, sDeclName :: Name, sDeclType :: Ty, sDeclBinders :: MultiBinder, sDeclBody :: a }
-  deriving (Show,Functor)
+    SDecl     { sDeclPos :: Pos, sDeclName :: Name, sDeclType :: STy, sDeclBody :: a }
+  | SDeclLam  { sDeclPos :: Pos, sDeclName :: Name, sDeclType :: STy, sDeclBinders :: MultiBinder, sDeclBody :: a }
+  | SDeclFix  { sDeclPos :: Pos, sDeclName :: Name, sDeclType :: STy, sDeclBinders :: MultiBinder, sDeclBody :: a }
+  | SDeclType { sDeclPos :: Pos, sDeclName :: Name, sDeclType :: STy }
+  deriving (Show, Functor, Foldable, Traversable)
 
 -- | tipo de datos de declaraciones, parametrizado por el tipo del cuerpo de la declaración
-data Decl a =
-    Decl { declPos :: Pos, declName :: Name, declType :: Ty, declBody :: a }
+data Decl ty a =
+    Decl { declPos :: Pos, declName :: Name, declType :: ty, declBody :: a }
   deriving (Show,Functor)
 
 -- | AST de los términos azucarados 
 --   - info es información extra que puede llevar cada nodo. 
 --       Por ahora solo la usamos para guardar posiciones en el código fuente.
 -- los constructores que comienzan con S son azucarados y los que comienzan con B se corresponden con los de Tm
-data STm info = SLet info Name Ty (STm info) (STm info)                   -- ^ let x : s = t in t'
-              | SLetLam info Name Ty MultiBinder (STm info) (STm info) -- ^ let f (x1 : s1) ... (xn : sn) : s' = t in t'
-              | SLetFix info Name Ty MultiBinder (STm info) (STm info) -- ^ let rec f (x1 : s1) ... (xn : sn) : s' = t in t'
+data STm info = SLet info Name STy (STm info) (STm info)                   -- ^ let x : s = t in t'
+              | SLetLam info Name STy MultiBinder (STm info) (STm info) -- ^ let f (x1 : s1) ... (xn : sn) : s' = t in t'
+              | SLetFix info Name STy MultiBinder (STm info) (STm info) -- ^ let rec f (x1 : s1) ... (xn : sn) : s' = t in t'
               | SLam info MultiBinder (STm info)                       -- ^ fun (x1 : s1) ... (xn : sn) -> t
-              | SFix info Name Ty MultiBinder (STm info)               -- ^ fix f (x1 : s1) ... (xn : sn) -> t
+              | SFix info Name STy MultiBinder (STm info)               -- ^ fix f (x1 : s1) ... (xn : sn) -> t
               | BV info Name
               | BConst info Const
               | BApp info (STm info) (STm info)
@@ -69,18 +77,18 @@ type STerm = STm Pos       -- ^ 'STm' tiene 'Name's como variables ligadas y lib
 --   - info es información extra que puede llevar cada nodo. 
 --       Por ahora solo la usamos para guardar posiciones en el código fuente.
 --   - var es el tipo de la variables. Es 'Name' para fully named y 'Var' para locally closed. 
-data Tm info var = 
+data Tm info ty var = 
     V info var
   | Const info Const
-  | Lam info Name Ty (Tm info var)
-  | App info (Tm info var) (Tm info var)
-  | UnaryOp info UnaryOp (Tm info var)
-  | Fix info Name Ty Name Ty (Tm info var)
-  | IfZ info (Tm info var) (Tm info var) (Tm info var)
+  | Lam info Name ty (Tm info ty var)
+  | App info (Tm info ty var) (Tm info ty var)
+  | UnaryOp info UnaryOp (Tm info ty var)
+  | Fix info Name ty Name ty (Tm info ty var)
+  | IfZ info (Tm info ty var) (Tm info ty var) (Tm info ty var)
   deriving (Show, Functor)
 
-type NTerm = Tm Pos Name   -- ^ 'Tm' tiene 'Name's como variables ligadas y libres, guarda posición
-type Term = Tm Pos Var     -- ^ 'Tm' con índices de De Bruijn como variables ligadas, different type of variables, guarda posición
+type NTerm = Tm Pos Ty Name   -- ^ 'Tm' tiene 'Name's como variables ligadas y libres, guarda posición
+type Term = Tm Pos Ty Var     -- ^ 'Tm' con índices de De Bruijn como variables ligadas, different type of variables, guarda posición
 
 data Var = 
     Bound !Int
@@ -88,7 +96,7 @@ data Var =
   deriving Show
 
 -- | Obtiene la info en la raíz del término.
-getInfo :: Tm info var -> info
+getInfo :: Tm info ty var -> info
 getInfo (V i _) = i
 getInfo (Const i _) = i
 getInfo (Lam i _ _ _) = i
@@ -98,7 +106,7 @@ getInfo (Fix i _ _ _ _ _) = i
 getInfo (IfZ i _ _ _) = i
 
 -- | Obtiene las variables libres de un término.
-freeVars :: Tm info Var -> [Name]
+freeVars :: Tm info ty Var -> [Name]
 freeVars (V _ (Free v))    = [v]
 freeVars (V _ _)           = []
 freeVars (Lam _ _ _ t)     = freeVars t

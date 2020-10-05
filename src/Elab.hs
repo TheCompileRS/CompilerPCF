@@ -9,69 +9,123 @@ Este módulo permite elaborar términos y declaraciones para convertirlas desde
 fully named (@NTerm) a locally closed (@Term@) 
 -}
 
-module Elab ( elab, elab_decl ) where
+module Elab ( elab, elabDecl ) where
 
 import Lang
 import Subst
+import MonadPCF (failPCF, MonadPCF, lookupTyDef, addTyDef)
+
 
 
 -- | 'elab' elabora términos azucarados 
-elab :: STerm -> Term
-elab = elab_ . desugar
+elab :: MonadPCF m => STerm -> m Term
+elab t1 = do
+    t2 <- return $ desugarTerm t1
+    t3 <- resolveTypesTerm t2
+    t4 <- return $ bruijnize t3
+    return t4
 
 -- | 'elab_' transforma variables ligadas en índices de de Bruijn
 -- en un término dado. 
-elab_ :: NTerm -> Term
-elab_ (V p v)               = V p (Free v)
-elab_ (Const p c)           = Const p c
-elab_ (Lam p v ty t)        = Lam p v ty (close v (elab_ t))
-elab_ (App p h a)           = App p (elab_ h) (elab_ a)
-elab_ (Fix p f fty x xty t) = Fix p f fty x xty (closeN [f, x] (elab_ t))
-elab_ (IfZ p c t e)         = IfZ p (elab_ c) (elab_ t) (elab_ e)
-elab_ (UnaryOp i o t)       = UnaryOp i o (elab_ t)
+bruijnize :: NTerm -> Term
+bruijnize (V p v)               = V p (Free v)
+bruijnize (Const p c)           = Const p c
+bruijnize (Lam p v ty t)        = Lam p v ty (close v (bruijnize t))
+bruijnize (App p h a)           = App p (bruijnize h) (bruijnize a)
+bruijnize (Fix p f fty x xty t) = Fix p f fty x xty (closeN [f, x] (bruijnize t))
+bruijnize (IfZ p c t e)         = IfZ p (bruijnize c) (bruijnize t) (bruijnize e)
+bruijnize (UnaryOp i o t)       = UnaryOp i o (bruijnize t)
 
 
-elab_decl :: SDecl STerm -> Decl Term
-elab_decl = fmap elab . desugar_decl
+elabDecl :: MonadPCF m => SDecl STerm -> m (Maybe (Decl Ty Term))
+elabDecl decl = case decl of
+    SDeclType _ name ty -> do ty' <- resolveType ty
+                              addTyDef name ty'
+                              return Nothing
+    _ -> do decl2 <- return $ desugarDecl decl
+            decl3 <- resolveTypesDecl decl2
+            return $ Just decl3
 
-desugar_decl :: SDecl STerm -> Decl STerm
-desugar_decl decl = case decl of
-    SDecl p x ty t       -> Decl p x ty t
-    SDeclLam p f ft bs t -> Decl p f (foldr chainTypes ft $ expandBinders bs) (SLam p bs t)
-    SDeclFix p f ft bs t -> let ft' = foldr chainTypes ft $ expandBinders bs
-                            in Decl p f ft' (SFix p f ft' bs t)
 
-expandBinders :: MultiBinder -> [(Name, Ty)]
+desugarDecl :: SDecl STerm -> Decl STy STerm
+desugarDecl decl = case decl of
+     SDecl p x ty t       -> Decl p x ty t
+     SDeclLam p f ft bs t -> Decl p f (foldr chainTypes ft $ expandBinders bs) (SLam p bs t)
+     SDeclFix p f ft bs t -> let ft' = foldr chainTypes ft $ expandBinders bs
+                             in Decl p f ft' (SFix p f ft' bs t)
+
+
+resolveTypesDecl :: MonadPCF m => Decl STy STerm -> m (Decl Ty Term)
+resolveTypesDecl decl = do ty <- resolveType $ declType decl
+                           body <- elab $ declBody decl
+                           return decl { declType = ty, declBody = body }
+
+expandBinders :: MultiBinder -> [(Name, STy)]
 expandBinders bs = bs >>= \(vars, ty) -> flip (,) ty <$> vars 
 
-chainTypes :: (Name, Ty) -> Ty -> Ty 
-chainTypes (_, ty1) ty2 = FunTy ty1 ty2
+chainTypes :: (Name, STy) -> STy -> STy 
+chainTypes (_, ty1) ty2 = SFunTy ty1 ty2
 
-constructFun :: info -> (Name, Ty) -> Tm info var -> Tm info var
+constructFun :: info -> (Name, ty) -> Tm info ty var -> Tm info ty var
 constructFun i (var, ty) t = Lam i var ty t
 
 -- | 'desugar' transforma términos azucarados en términos PCF0
-desugar :: STerm -> NTerm
-desugar term = case term of
+
+
+resolveTypesTerm :: MonadPCF m => Tm info STy var -> m (Tm info Ty var)
+resolveTypesTerm term = case term of
+    V i x       -> return $ V i x
+    Const i v   -> return $ Const i v
+    App i t1 t2 -> do   t1' <- resolveTypesTerm t1
+                        t2' <- resolveTypesTerm t2
+                        return $ App i t1' t2'
+    UnaryOp i op t -> do    t' <- resolveTypesTerm t
+                            return $ UnaryOp i op t'
+    IfZ i t1 t2 t3 -> do    t1' <- resolveTypesTerm t1
+                            t2' <- resolveTypesTerm t2
+                            t3' <- resolveTypesTerm t3
+                            return $ IfZ i t1' t2' t3'
+    Fix i f ft x xt t -> do t' <- resolveTypesTerm t
+                            ft' <- resolveType ft
+                            xt' <- resolveType xt
+                            return $ Fix i f ft' x xt' t'
+    Lam i x xt t -> do  t' <- resolveTypesTerm t
+                        xt' <- resolveType xt
+                        return $ Lam i x xt' t'
+
+--desugar :: STerm -> NTerm
+desugarTerm :: STm info -> Tm info STy Name
+desugarTerm term = case term of
     -- sugared
-    SLet i x xt t1 t2           -> App i (Lam i x xt (desugar t2)) (desugar t1)
+    SLet i x xt t1 t2           -> App i (Lam i x xt (desugarTerm t2)) (desugarTerm t1)
 
     SLetLam i f ft bs t1 t2     -> let bs' = expandBinders bs
-                                   in desugar $ SLet i f (foldr chainTypes ft bs') (SLam i bs t1) t2
+                                   in desugarTerm $ SLet i f (foldr chainTypes ft bs') (SLam i bs t1) t2
 
     SLetFix i f ft bs t1 t2     -> let ft' = (foldr chainTypes ft $ expandBinders bs)
-                                   in desugar $ SLet i f ft' (SFix i f ft' bs t1) t2
+                                   in desugarTerm $ SLet i f ft' (SFix i f ft' bs t1) t2
 
-    SLam i bs t                 -> foldr (constructFun i) (desugar t) (expandBinders bs)
+    SLam i bs t                 -> foldr (constructFun i) (desugarTerm t) (expandBinders bs)
 
     SFix i f ft bs t            -> let (x,xt):rest = expandBinders bs
-                                   in Fix i f ft x xt $ foldr (constructFun i) (desugar t) rest
+                                   in Fix i f ft x xt $ foldr (constructFun i) (desugarTerm t) rest
     -- base
     BV i x              -> V i x
     BConst i v          -> Const i v
-    BApp i t1 t2        -> App i (desugar t1) (desugar t2)
-    BUnaryOp i op t     -> UnaryOp i op (desugar t)
+    BApp i t1 t2        -> App i (desugarTerm t1) (desugarTerm t2)
+    BUnaryOp i op t     -> UnaryOp i op (desugarTerm t)
     
-    BIfZ i t1 t2 t3     -> IfZ i (desugar t1) (desugar t2) (desugar t3)
+    BIfZ i t1 t2 t3     -> IfZ i (desugarTerm t1) (desugarTerm t2) (desugarTerm t3)
       
 
+resolveType :: MonadPCF m => STy -> m Ty
+resolveType ty = case ty of
+    SNatTy -> return NatTy
+    SFunTy t1 t2 -> do t1' <- resolveType t1
+                       t2' <- resolveType t2 
+                       return $ FunTy t1' t2'
+    SSynTy s -> do mt <- lookupTyDef s
+                   case mt of
+                       Just t  -> return t
+                       Nothing -> failPCF $ "Tipo " ++ s ++ " desconocido."
+     

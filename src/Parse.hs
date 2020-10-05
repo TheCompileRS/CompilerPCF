@@ -30,7 +30,7 @@ lexer = Tok.makeTokenParser $
          commentEnd    = "-}",
          commentLine    = "#",
          reservedNames = ["let", "fun", "fix", "then", "else", 
-                          "succ", "pred", "ifz", "Nat", "rec", "in"],
+                          "succ", "pred", "ifz", "Nat", "rec", "in", "type"],
          reservedOpNames = ["->",":","="],
          caseSensitive = True
         }
@@ -67,18 +67,32 @@ getPos :: P Pos
 getPos = do pos <- getPosition
             return $ Pos (sourceLine pos) (sourceColumn pos)
 
-tyatom :: P Ty
-tyatom = (reserved "Nat" >> return NatTy)
-         <|> parens typeP
+tyVar :: P STy
+tyVar = do name <- var -- TODO: replace by real parser
+           return $ SSynTy name
 
-typeP :: P Ty
+tyatom :: P STy
+tyatom = (reserved "Nat" >> return SNatTy)
+         <|> parens typeP
+         <|> tyVar
+
+typeP :: P STy
 typeP = try (do 
           x <- tyatom
           reservedOp "->"
           y <- typeP
-          return (FunTy x y))
+          return (SFunTy x y))
       <|> tyatom
           
+declTypeP :: P (SDecl STerm)
+declTypeP = do
+    i <- getPos
+    reserved "type"
+    name <- identifier -- TODO: replace by real parser 
+    reservedOp "="
+    ty <- typeP
+    return (SDeclType i name ty)
+
 const :: P Const
 const = CNat <$> num
 
@@ -105,7 +119,7 @@ eta_expansion = do
             i <- getPos
             o <- unaryOpName
             let a = BUnaryOp i o $ BV i "n"
-            return $ SLam i [(["n"], NatTy)] a
+            return $ SLam i [(["n"], SNatTy)] a
 
 lam :: P STerm
 lam = do i <- getPos
@@ -132,7 +146,7 @@ ifz = do i <- getPos
          e <- tm
          return $ BIfZ i c t e
 
-binding :: P (Name, Ty)
+binding :: P (Name, STy)
 binding = do v <- var
              reservedOp ":"
              ty <- typeP
@@ -200,7 +214,7 @@ letFix = do
 
 -- | Parser de declaraciones
 decl :: P (SDecl STerm)
-decl = try declFix <|> try declLet <|> declLam 
+decl = declTypeP <|> try declFix <|> try declLet <|> declLam 
 
 declLet :: P (SDecl STerm)
 declLet = do 

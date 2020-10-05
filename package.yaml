@@ -1,9 +1,8 @@
-name:                compiladores
-version:             0.1.3.0
-github:              " compiladores-lcc/compiladores"
+name:                compiler
+version:             0.1.5.0
+github:              "TheCompileRS/CompilerPCF"
 license:             GPL-3
 author:              "Mauro Jaskelioff, Guido Martinez, Román Castellarin y Sebastián Zimmermann"
-maintainer:          "mauro@fceia.unr.edu.ar"
 copyright:           "2020 Mauro Jaskelioff, Guido Martinez, Román Castellarin y Sebastián Zimmermann"
 
 extra-source-files:
