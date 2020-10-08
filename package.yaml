@@ -33,7 +33,7 @@ library:
   source-dirs: src
 
 executables:
-  compiladores-exe:
+  compiler-exe:
     main:                Main.hs
     source-dirs:         app
     ghc-options:
@@ -46,10 +46,10 @@ executables:
     - -fwarn-name-shadowing
     - -fwarn-incomplete-patterns
     dependencies:
-    - compiladores
+    - compiler
 
 tests:
-  compiladores-test:
+  compiler-test:
     main:                Spec.hs
     source-dirs:         test
     ghc-options:
@@ -57,4 +57,4 @@ tests:
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
-    - compiladores
+    - compiler

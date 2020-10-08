@@ -4,7 +4,7 @@
 	- Abstract Machines
 
 ## Preguntar:
-	- Nothing :D
+	- debemos pasar info y tipos a traves de los pasos de la maquina ?
 
 ## Syntatic Sugar
 	- ~Parse PCF1 terms~
@@ -15,9 +15,12 @@
 	- Types PrettyPrint 
 	- Parser for type names (uppercase + alphanum) (check reserved keywords)
 	- Beautify elab
+	- UNARY OP IS BROKEN (always eta-expands)
 
 ## Testing
 	- Testing
 
 ## Abstract Machines
-	- read
+	- solve syntax sugar
+	- test
+	- do valToTerm the right way

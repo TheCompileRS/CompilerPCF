@@ -32,6 +32,7 @@ import Eval ( eval )
 import PPrint ( pp , ppTy )
 import MonadPCF
 import TypeChecker ( tc, tcDecl )
+import CEK (search, valToTerm)
 
 prompt :: String
 prompt = "PCF> "
@@ -89,7 +90,8 @@ handleDecl decl = do
     Nothing -> return ()
     Just (Decl p x ty tt) -> do
         tcDecl (Decl p x ty tt)
-        te <- eval tt
+        --te <- eval tt
+        te <- liftM valToTerm $ search tt [] []
         addDecl (Decl p x ty te)
 
 data Command = Compile CompileForm
@@ -177,7 +179,8 @@ handleTerm t = do
          tt <- elab t
          s <- get
          ty <- tc tt (tyEnv s)
-         te <- eval tt
+         --te <- eval tt
+         te <- liftM valToTerm $ search tt [] [] 
          printPCF (pp te ++ " : " ++ ppTy ty)
 
 printPhrase   :: MonadPCF m => String -> m ()
