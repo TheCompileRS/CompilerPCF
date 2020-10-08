@@ -170,7 +170,7 @@ fix = do i <- getPos
 
 -- | Parser de términos
 tm :: P STerm
-tm = app <|> lam <|> ifz <|> unaryOp <|> fix <|> try letFix <|> try letIn <|> letLam   
+tm = try unaryOp <|> app <|> lam <|> ifz <|>  fix <|> try letFix <|> try letIn <|> letLam   
 
 letIn :: P STerm
 letIn = do 
@@ -269,4 +269,4 @@ runP p s filename = runParser (whiteSpace *> p <* eof) () filename s
 parse :: String -> (Either (SDecl STerm) STerm)
 parse s = case runP declOrTm s "" of
             Right t -> t
-            Left e -> error ("no parse: " ++ show s)
+            Left _ -> error ("no parse: " ++ show s)

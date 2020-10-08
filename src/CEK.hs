@@ -13,7 +13,7 @@ module CEK ( search, destroy,valToTerm ) where
 import Lang
 import MonadPCF
 import Common
-import Debug.Trace (trace)
+--import Debug.Trace (trace)
 
 data Val = VNat Int
          | CFun Env Name Term 
@@ -37,7 +37,7 @@ valToTerm v = case v of
     CFix _ f x t  -> Fix NoPos f NatTy x NatTy t
 
 search :: MonadPCF m => Term -> Env -> Kont -> m Val
-search t e k | trace ("search " ++ show t ++ " " ++ show k) False = undefined
+--search t e k | trace ("search " ++ show t ++ " " ++ show k) False = undefined
 search t e k = case t of
         UnaryOp _ op t'  -> search t' e (FUnaryOp op : k)
         IfZ _ t1 t2 t3   -> search t1 e (FIfz e t2 t3 : k)
@@ -53,7 +53,7 @@ search t e k = case t of
         Fix _ f _ x _ t  -> destroy (CFix e f x t) k
 
 destroy :: MonadPCF m => Val -> Kont -> m Val
-destroy v k | trace ("destroy " ++ show v ++ " " ++ show k) False = undefined
+--destroy v k | trace ("destroy " ++ show v ++ " " ++ show k) False = undefined
 destroy v k = case k of
         []   -> return v
         fr:ks -> case fr of
@@ -67,6 +67,6 @@ destroy v k = case k of
                                              then search t1 e ks
                                              else search t2 e ks
             FApp e t                  -> search t e (FClosure v : ks)
-            FClosure (CFun e _ t)     -> search t (v : e) (FClosure v : ks)
-            FClosure c@(CFix e _ _ t) -> search t (c : v : e) (FClosure v : ks)
+            FClosure (CFun e _ t)     -> search t (v : e) ks
+            FClosure c@(CFix e _ _ t) -> search t (v : c : e) ks
             caca -> error $ show caca
