@@ -1,6 +1,6 @@
 {-|
 Module      : CEK
-Description : ???
+Description : AST de componentes de la máquina abstracta CEK, junto con las funciones de búsqueda y reducción.
 Copyright   : (c) Roman Castellarin, Sebastián Zimmermann 2020.
 License     : GPL-3
 Stability   : experimental
@@ -16,27 +16,33 @@ import Common
 import Subst (substN)
 --import Debug.Trace (trace)
 
+-- | AST de valores
 data Val = VNat Int
          | CFun Env Name Ty Term 
          | CFix Env Name Ty Name Ty Term
      deriving Show
 
+-- | Un state es una lista de valores
 type Env = [Val]
 
+-- | AST de marcos
 data Fr = FApp Env Term
         | FClosure Val
         | FIfz Env Term Term
         | FUnaryOp UnaryOp
     deriving Show
 
+-- | Una continuación es una lista de marcos
 type Kont = [Fr]
 
+-- | 'valToTerm' Transforma valores a términos. Para el pretty print.
 valToTerm :: Val -> Term
 valToTerm v = case v of
     VNat n              -> Const NoPos (CNat n)
     CFun e x xt t       -> substN (valToTerm <$> e) $ Lam NoPos x xt t
     CFix e f ft x xt t  -> substN (valToTerm <$> e) $ Fix NoPos f ft x xt t
 
+-- | 'search' Ejecuta una fase de búsqueda de la máquina CEK, sobre un término
 search :: MonadPCF m => Term -> Env -> Kont -> m Val
 --search t e k | trace ("search " ++ show t ++ " <> " ++ show e ++ " <> " ++ show k) False = undefined
 search t e k = case t of
@@ -53,6 +59,7 @@ search t e k = case t of
         Lam _ x xt t      -> destroy (CFun e x xt t) k
         Fix _ f ft x xt t  -> destroy (CFix e f ft x xt t) k
 
+-- | 'destroy' Ejecuta una fase de reducción de la máquina CEK, sobre un valor
 destroy :: MonadPCF m => Val -> Kont -> m Val
 --destroy v k | trace ("destroy " ++ show v ++ " <> " ++ show k) False = undefined
 destroy v k = case k of

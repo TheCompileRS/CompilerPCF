@@ -17,7 +17,8 @@ import MonadPCF (failPCF, MonadPCF, lookupTyDef, addTyDef)
 
 
 
--- | 'elab' elabora términos azucarados 
+-- | 'elab' elabora términos azucarados, quitando el azucar del tipo, término y
+-- transformándolo en un término con índices de de Bruijn 
 elab :: MonadPCF m => STerm -> m Term
 elab t1 = do
     t2 <- return $ desugarTerm t1
@@ -25,18 +26,8 @@ elab t1 = do
     t4 <- return $ bruijnize t3
     return t4
 
--- | 'elab_' transforma variables ligadas en índices de de Bruijn
--- en un término dado. 
-bruijnize :: NTerm -> Term
-bruijnize (V p v)               = V p (Free v)
-bruijnize (Const p c)           = Const p c
-bruijnize (Lam p v ty t)        = Lam p v ty (close v (bruijnize t))
-bruijnize (App p h a)           = App p (bruijnize h) (bruijnize a)
-bruijnize (Fix p f fty x xty t) = Fix p f fty x xty (closeN [f, x] (bruijnize t))
-bruijnize (IfZ p c t e)         = IfZ p (bruijnize c) (bruijnize t) (bruijnize e)
-bruijnize (UnaryOp i o t)       = UnaryOp i o (bruijnize t)
 
-
+-- | 'elabDecl' elabora declaraciones, quitándoles el azucar sintáctico y resolviendo su tipo
 elabDecl :: MonadPCF m => SDecl STerm -> m (Maybe (Decl Ty Term))
 elabDecl decl = case decl of
     SDeclType _ name ty -> do ty' <- resolveType ty
@@ -46,7 +37,7 @@ elabDecl decl = case decl of
             decl3 <- resolveTypesDecl decl2
             return $ Just decl3
 
-
+-- | 'desugarDecl' quita el azucar sintáctico de una declaración.
 desugarDecl :: SDecl STerm -> Decl STy STerm
 desugarDecl decl = case decl of
      SDecl p x ty t       -> Decl p x ty t
@@ -55,45 +46,14 @@ desugarDecl decl = case decl of
                              in Decl p f ft' (SFix p f ft' bs t)
 
 
+-- | 'resolveTypesDecl' quita el azucar sintáctico de los tipos de una declaración.
 resolveTypesDecl :: MonadPCF m => Decl STy STerm -> m (Decl Ty Term)
 resolveTypesDecl decl = do ty <- resolveType $ declType decl
                            body <- elab $ declBody decl
                            return decl { declType = ty, declBody = body }
 
-expandBinders :: MultiBinder -> [(Name, STy)]
-expandBinders bs = bs >>= \(vars, ty) -> flip (,) ty <$> vars 
 
-chainTypes :: (Name, STy) -> STy -> STy 
-chainTypes (_, ty1) ty2 = SFunTy ty1 ty2
-
-constructFun :: info -> (Name, ty) -> Tm info ty var -> Tm info ty var
-constructFun i (var, ty) t = Lam i var ty t
-
--- | 'desugar' transforma términos azucarados en términos PCF0
-
-
-resolveTypesTerm :: MonadPCF m => Tm info STy var -> m (Tm info Ty var)
-resolveTypesTerm term = case term of
-    V i x       -> return $ V i x
-    Const i v   -> return $ Const i v
-    App i t1 t2 -> do   t1' <- resolveTypesTerm t1
-                        t2' <- resolveTypesTerm t2
-                        return $ App i t1' t2'
-    UnaryOp i op t -> do    t' <- resolveTypesTerm t
-                            return $ UnaryOp i op t'
-    IfZ i t1 t2 t3 -> do    t1' <- resolveTypesTerm t1
-                            t2' <- resolveTypesTerm t2
-                            t3' <- resolveTypesTerm t3
-                            return $ IfZ i t1' t2' t3'
-    Fix i f ft x xt t -> do t' <- resolveTypesTerm t
-                            ft' <- resolveType ft
-                            xt' <- resolveType xt
-                            return $ Fix i f ft' x xt' t'
-    Lam i x xt t -> do  t' <- resolveTypesTerm t
-                        xt' <- resolveType xt
-                        return $ Lam i x xt' t'
-
---desugar :: STerm -> NTerm
+-- | 'desugarTerm' quita el azucar de los términos 
 desugarTerm :: STm info -> Tm info STy Name
 desugarTerm term = case term of
     -- sugared
@@ -116,8 +76,41 @@ desugarTerm term = case term of
     BUnaryOp i op t     -> UnaryOp i op (desugarTerm t)
     
     BIfZ i t1 t2 t3     -> IfZ i (desugarTerm t1) (desugarTerm t2) (desugarTerm t3)
-      
 
+
+-- | 'resolveTypesTerm' quita el azucar sintáctico de los términos
+resolveTypesTerm :: MonadPCF m => Tm info STy var -> m (Tm info Ty var)
+resolveTypesTerm term = case term of
+    V i x       -> return $ V i x
+    Const i v   -> return $ Const i v
+    App i t1 t2 -> do   t1' <- resolveTypesTerm t1
+                        t2' <- resolveTypesTerm t2
+                        return $ App i t1' t2'
+    UnaryOp i op t -> do    t' <- resolveTypesTerm t
+                            return $ UnaryOp i op t'
+    IfZ i t1 t2 t3 -> do    t1' <- resolveTypesTerm t1
+                            t2' <- resolveTypesTerm t2
+                            t3' <- resolveTypesTerm t3
+                            return $ IfZ i t1' t2' t3'
+    Fix i f ft x xt t -> do t' <- resolveTypesTerm t
+                            ft' <- resolveType ft
+                            xt' <- resolveType xt
+                            return $ Fix i f ft' x xt' t'
+    Lam i x xt t -> do  t' <- resolveTypesTerm t
+                        xt' <- resolveType xt
+                        return $ Lam i x xt' t'
+
+
+expandBinders :: MultiBinder -> [(Name, STy)]
+expandBinders bs = bs >>= \(vars, ty) -> flip (,) ty <$> vars 
+
+chainTypes :: (Name, STy) -> STy -> STy 
+chainTypes (_, ty1) ty2 = SFunTy ty1 ty2
+
+constructFun :: info -> (Name, ty) -> Tm info ty var -> Tm info ty var
+constructFun i (var, ty) t = Lam i var ty t
+
+-- | 'resolveType' toma un tipo azucarado y le quita el azucar
 resolveType :: MonadPCF m => STy -> m Ty
 resolveType ty = case ty of
     SNatTy -> return NatTy
@@ -128,4 +121,16 @@ resolveType ty = case ty of
                    case mt of
                        Just t  -> return t
                        Nothing -> failPCF $ "Tipo " ++ s ++ " desconocido."
+
+-- | 'bruijnize' transforma variables ligadas en índices de de Bruijn
+-- en un término dado. 
+bruijnize :: NTerm -> Term
+bruijnize (V p v)               = V p (Free v)
+bruijnize (Const p c)           = Const p c
+bruijnize (Lam p v ty t)        = Lam p v ty (close v (bruijnize t))
+bruijnize (App p h a)           = App p (bruijnize h) (bruijnize a)
+bruijnize (Fix p f fty x xty t) = Fix p f fty x xty (closeN [f, x] (bruijnize t))
+bruijnize (IfZ p c t e)         = IfZ p (bruijnize c) (bruijnize t) (bruijnize e)
+bruijnize (UnaryOp i o t)       = UnaryOp i o (bruijnize t)
+
      
