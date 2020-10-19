@@ -27,6 +27,9 @@ dependencies:
 - exceptions
 - hspec
 - QuickCheck
+- optparse-applicative
+- binary
+- bytestring
 
 
 library:
