@@ -28,7 +28,7 @@ import Errors
 import Lang
 import Parse ( P, tm, program, declOrTm, runP )
 import Elab ( elab, elabDecl )
-import Eval ( eval )
+--import Eval ( eval )
 import PPrint ( pp , ppTy )
 import MonadPCF
 import TypeChecker ( tc, tcDecl )
@@ -189,7 +189,7 @@ printPhrase x =
     x' <- parseIO "<interactive>" tm x
     ex <- elab x'
     t  <- case x' of 
-           (BV p f) -> maybe ex id <$> lookupDecl f
+           (BV _ f) -> maybe ex id <$> lookupDecl f
            _        -> return ex  
     printPCF "STerm:"
     printPCF (show x')

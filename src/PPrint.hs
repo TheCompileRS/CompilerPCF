@@ -92,8 +92,8 @@ t2doc :: Bool     -- Debe ser un átomo?
       -> Doc
 -- Uncomment to use the Show instance for STerm
 {- t2doc at x = text (show x) -}
-t2doc at (V _ x) = text x
-t2doc at (Const _ c) = c2doc c
+t2doc _ (V _ x) = text x
+t2doc _ (Const _ c) = c2doc c
 t2doc at (Lam _ v ty t) =
   parenIf at $
   sep [sep [text "fun", parens (sep [name2doc v,text ":",ty2doc ty]), text "->"], nest 2 (t2doc False t)]

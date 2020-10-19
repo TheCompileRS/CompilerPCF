@@ -45,7 +45,7 @@ valToTerm v = case v of
 -- | 'search' Ejecuta una fase de búsqueda de la máquina CEK, sobre un término
 search :: MonadPCF m => Term -> Env -> Kont -> m Val
 --search t e k | trace ("search " ++ show t ++ " <> " ++ show e ++ " <> " ++ show k) False = undefined
-search t e k = case t of
+search term e k = case term of
         UnaryOp _ op t'  -> search t' e (FUnaryOp op : k)
         IfZ _ t1 t2 t3   -> search t1 e (FIfz e t2 t3 : k)
         App _ t1 t2      -> search t1 e (FApp e t2 : k)

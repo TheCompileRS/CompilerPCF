@@ -28,20 +28,20 @@ tc (V p (Bound _)) _ = failPosPCF p "typecheck: No deberia haber variables Bound
 tc (V p (Free n)) bs = case lookup n bs of
                            Nothing -> failPosPCF p $ "Variable no declarada "++ppName n
                            Just ty -> return ty 
-tc (Const _ (CNat n)) _ = return NatTy
-tc (UnaryOp p u t) bs = do 
+tc (Const _ (CNat _)) _ = return NatTy
+tc (UnaryOp _ _ t) bs = do 
       ty <- tc t bs
       expect NatTy ty t
-tc (IfZ p c t t') bs = do
+tc (IfZ _ c t t') bs = do
        tyc  <- tc c bs
        expect NatTy tyc c
        tyt  <- tc t bs
        tyt' <- tc t' bs
        expect tyt tyt' t'
-tc (Lam p v ty t) bs = do
+tc (Lam _ v ty t) bs = do
          ty' <- tc (open v t) ((v,ty):bs)
          return (FunTy ty ty')
-tc (App p t u) bs = do
+tc (App _ t u) bs = do
          tyt <- tc t bs
          (dom,cod) <- domCod t tyt
          tyu <- tc u bs
@@ -78,7 +78,7 @@ expect ty ty' t = if ty == ty' then return ty
 -- | 'domCod chequea que un tipo sea función
 -- | devuelve un par con el tipo del dominio y el codominio de la función
 domCod :: MonadPCF m => Term -> Ty -> m (Ty, Ty)
-domCod t (FunTy d c) = return (d, c)
+domCod _ (FunTy d c) = return (d, c)
 domCod t ty = typeError t $ "Se esperaba un tipo función, pero se obtuvo: " ++ ppTy ty
 
 -- | 'tcDecl' chequea el tipo de una declaración
