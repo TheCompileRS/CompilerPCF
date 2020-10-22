@@ -90,6 +90,7 @@ bc term = case term of
     IfZ _ t1 t2 t3    -> do p1 <- bc t1
                             p2 <- bc t2
                             p3 <- bc t3
+                            --return $ IFZ : length p1 : length p2 : length p3 : p1 ++ p2 ++ p3
                             return $ p3 ++ p2 ++ p1 ++ [IFZ]
     Fix _ _ _ _ _ t   -> do p <- bc t
                             return $ [FUNCTION, length p + 1] ++ p ++ [RETURN, FIX]
@@ -115,9 +116,31 @@ bcRead :: FilePath -> IO Bytecode
 bcRead filename = map fromIntegral <$> un32  <$> decode <$> BS.readFile filename
 
 runBC :: MonadPCF m => Bytecode -> m ()
-runBC prog = case prog of 
-  
-  _ -> error "implementame"
+runBC prog = bVM (prog ++ [PRINT, STOP], [], [])
+
+data Val = I Int | Fun Env Bytecode | RA Env Bytecode
+  deriving Show
+type Env = [Val]
+type Stack = [Val]
+
+bVM :: MonadPCF m => (Bytecode, Env, Stack) -> m ()
+bVM stateVM = case stateVM of
+  (RETURN:_         , _   , val:RA env' prog':stack') -> bVM (prog', env', val :stack') 
+  (CONST:val:prog'  , env , stack                   ) -> bVM (prog', env, I val :stack)
+  (ACCESS:i:prog'   , env , stack                   ) -> bVM (prog', env, env!!i :stack)
+  (FUNCTION:l:rest  , env , stack                   ) -> let (body , prog') = splitAt l rest 
+                                                         in  bVM (prog', env, Fun env body : stack)
+  (CALL:prog'       , env , val:Fun env' body:stack') -> bVM (body , val : env', RA env prog' : stack')
+  (SUCC:prog'       , env , I n : stack')             -> bVM (prog', env, I (n+1) : stack')
+  (PRED:prog'       , env , I n : stack')             -> bVM (prog', env, I (max 0 (n-1)) : stack')
+  (FIX:prog'        , env , Fun efun body : stack'  ) -> bVM (prog', env, Fun efix body : stack')
+    where efix = Fun efix body : efun
+  (IFZ:prog'        , env , I n: val1: val2: stack' ) -> if n == 0
+                                                         then  bVM (prog', env, val1:stack')
+                                                         else  bVM (prog', env, val2:stack')
+  (STOP:_           , _   , _                     )   -> return ()
+  (PRINT:_          , _   , x:_                   )   -> liftIO $ print x
+    
 
 
 ---------------------------
@@ -129,5 +152,8 @@ parseTerm s = case runP tm s "parseTerm" of
       Right a -> a 
 
 mt :: MonadPCF m => m Bytecode
-mt = bc =<< (elab . parseTerm) "fix (f: Nat -> Nat) (n: Nat) -> ifz n then 0 else f (pred n)"
+--mt = bc =<< (elab . parseTerm) "fix (f: Nat -> Nat) (n: Nat) -> ifz n then 0 else f (pred n)"
+mt = bc =<< (elab . parseTerm) "(fix (suma: Nat -> Nat -> Nat)  (x y: Nat) -> ifz y then x else succ (suma x (pred y))) 5 3"
 
+mtc :: MonadPCF m => m Bytecode
+mtc = mt >>= runBC
