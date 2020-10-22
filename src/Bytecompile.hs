@@ -17,6 +17,10 @@ import Lang
 import Subst
 import MonadPCF
 
+-- for debugging
+import Parse
+import Elab
+
 import qualified Data.ByteString.Lazy as BS
 import Data.Binary ( Word32, Binary(put, get), decode, encode )
 import Data.Binary.Put ( putWord32le )
@@ -50,7 +54,7 @@ entero, por ejemplo:
    call = 5
  no podríamos hacer pattern-matching con `call`.
 
- En lo posible, usar estos códigos exactos para poder ejectutar un
+ En lo posible, usar estos códigos exactos para poder ejecutar un
  mismo bytecode compilado en distintas implementaciones de la máquina.
 -}
 pattern RETURN   = 1
@@ -69,10 +73,34 @@ pattern DROP     = 13
 pattern PRINT    = 14
 
 bc :: MonadPCF m => Term -> m Bytecode
-bc t = error "implementame"
+bc term = case term of
+    V _ (Bound i)     -> return [ACCESS, i]
+    V i (Free x)      -> do mx <- lookupDecl x
+                            case mx of
+                              Just y  -> bc y
+                              Nothing -> failPosPCF i $ "Variable " ++ x ++ " no declarada." 
+    Const _ (CNat n)  -> return [CONST, n]
+    Lam _ _ _ t       -> do p <- bc t
+                            return $ [FUNCTION, length p + 1] ++ p ++ [RETURN]
+    App _ t1 t2       -> do p1 <- bc t1
+                            p2 <- bc t2
+                            return $ p1 ++ p2 ++ [CALL]
+    UnaryOp _ op t    -> do p <- bc t
+                            return $ p ++ [compileUnaryOp op]
+    IfZ _ t1 t2 t3    -> do p1 <- bc t1
+                            p2 <- bc t2
+                            p3 <- bc t3
+                            return $ p3 ++ p2 ++ p1 ++ [IFZ]
+    Fix _ _ _ _ _ t   -> do p <- bc t
+                            return $ [FUNCTION, length p + 1] ++ p ++ [RETURN, FIX]
+  where 
+    compileUnaryOp op = case op of
+      Succ -> SUCC
+      Pred -> PRED
 
+type Module = [Decl Ty Name] -- ?? que es Module??
 bytecompileModule :: MonadPCF m => Module -> m Bytecode
-bytecompileModule mod = error "implementame"
+bytecompileModule _ = error "implementame"
 
 -- | Toma un bytecode, lo codifica y lo escribe un archivo 
 bcWrite :: Bytecode -> FilePath -> IO ()
@@ -87,4 +115,19 @@ bcRead :: FilePath -> IO Bytecode
 bcRead filename = map fromIntegral <$> un32  <$> decode <$> BS.readFile filename
 
 runBC :: MonadPCF m => Bytecode -> m ()
-runBC c = error "implementame"
+runBC prog = case prog of 
+  
+  _ -> error "implementame"
+
+
+---------------------------
+-- * SANDBOX
+---------------------------
+
+parseTerm :: String -> STerm
+parseTerm s = case runP tm s "parseTerm" of
+      Right a -> a 
+
+mt :: MonadPCF m => m Bytecode
+mt = bc =<< (elab . parseTerm) "fix (f: Nat -> Nat) (n: Nat) -> ifz n then 0 else f (pred n)"
+
