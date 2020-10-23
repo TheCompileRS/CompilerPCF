@@ -126,22 +126,24 @@ type Stack = [Val]
 
 bVM :: MonadPCF m => (Bytecode, Env, Stack) -> m ()
 bVM stateVM = case stateVM of
-  (RETURN:_        , _   , val:RA env prog:stack) -> bVM (prog, env, val:stack) 
-  (CONST:val:prog  , env , stack                   ) -> bVM (prog         , env       , I val:stack           )
-  (ACCESS:i:prog   , env , stack                   ) -> bVM (prog         , env       , env!!i:stack          )
-  (FUNCTION:l:rest , env , stack                   ) -> bVM (prog'        , env       , Fun env body:stack    )
-                                                  where (body , prog') = splitAt l rest
-  (CALL:prog       , env , val:Fun efun body:stack ) -> bVM (body         , val:efun  , RA env prog : stack   )
-  (SUCC:prog       , env , I n:stack               ) -> bVM (prog         , env       , I (n+1):stack         )
-  (PRED:prog       , env , I n:stack               ) -> bVM (prog         , env       , I (max 0 (n-1)):stack )
-  (FIX:prog        , env , Fun efun body:stack     ) -> bVM (prog         , env       , Fun efix body:stack   )
-                                                  where efix = Fun efix body : efun
-  (IFZ:l:prog      , env , I n:stack               ) -> if n == 0 
-                                                   then bVM (prog         , env       , stack                 )
-                                                   else bVM (drop l prog  , env       , stack                 )
-  (JUMP:l:prog      , env , stack                  ) -> bVM (drop l prog  , env       , stack                 )
-  (STOP:_           , _   , _                      ) -> return ()
-  (PRINT:_          , _   , val:_                  ) -> liftIO $ print val
+  (RETURN:_        , _        , val:RA env prog:stack) -> bVM (prog, env, val:stack) 
+  (CONST:val:prog  , env      , stack                   ) -> bVM (prog         , env       , I val:stack           )
+  (ACCESS:i:prog   , env      , stack                   ) -> bVM (prog         , env       , env!!i:stack          )
+  (FUNCTION:l:rest , env      , stack                   ) -> bVM (prog'        , env       , Fun env body:stack    )
+                                                       where (body , prog') = splitAt l rest
+  (CALL:prog       , env      , val:Fun efun body:stack ) -> bVM (body         , val:efun  , RA env prog : stack   )
+  (SUCC:prog       , env      , I n:stack               ) -> bVM (prog         , env       , I (n+1):stack         )
+  (PRED:prog       , env      , I n:stack               ) -> bVM (prog         , env       , I (max 0 (n-1)):stack )
+  (FIX:prog        , env      , Fun efun body:stack     ) -> bVM (prog         , env       , Fun efix body:stack   )
+                                                       where efix = Fun efix body : efun
+  (IFZ:l:prog      , env      , I n:stack               ) -> if n == 0 
+                                                        then bVM (prog         , env       , stack                 )
+                                                        else bVM (drop l prog  , env       , stack                 )
+  (JUMP:l:prog     , env      , stack                   ) -> bVM (drop l prog  , env       , stack                 )
+  (SHIFT:prog      , env      , val:stack               ) -> bVM (prog         , val:env   , stack                 )
+  (DROP:prog       , val:env  , stack                   ) -> bVM (prog         , env       , stack                 )
+  (STOP:_          , _        , _                       ) -> return ()
+  (PRINT:_         , _        , val:_                   ) -> liftIO $ print val
   _ -> liftIO $ putStrLn $ "Unrecognized bytecode/state" ++ show stateVM
     
 
