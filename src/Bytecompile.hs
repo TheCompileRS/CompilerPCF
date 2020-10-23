@@ -90,8 +90,9 @@ bc term = case term of
     IfZ _ t1 t2 t3    -> do p1 <- bc t1
                             p2 <- bc t2
                             p3 <- bc t3
-                            --return $ IFZ : length p1 : length p2 : length p3 : p1 ++ p2 ++ p3
-                            return $ p3 ++ p2 ++ p1 ++ [IFZ]
+                            let l2 = length p2
+                            let l3 = length p3
+                            return $ p1 ++ [IFZ, l2 + 2] ++ p2 ++ [JUMP, l3] ++ p3
     Fix _ _ _ _ _ t   -> do p <- bc t
                             return $ [FUNCTION, length p + 1] ++ p ++ [RETURN, FIX]
   where 
@@ -125,21 +126,23 @@ type Stack = [Val]
 
 bVM :: MonadPCF m => (Bytecode, Env, Stack) -> m ()
 bVM stateVM = case stateVM of
-  (RETURN:_         , _   , val:RA env' prog':stack') -> bVM (prog', env', val :stack') 
-  (CONST:val:prog'  , env , stack                   ) -> bVM (prog', env, I val :stack)
-  (ACCESS:i:prog'   , env , stack                   ) -> bVM (prog', env, env!!i :stack)
-  (FUNCTION:l:rest  , env , stack                   ) -> let (body , prog') = splitAt l rest 
-                                                         in  bVM (prog', env, Fun env body : stack)
-  (CALL:prog'       , env , val:Fun env' body:stack') -> bVM (body , val : env', RA env prog' : stack')
-  (SUCC:prog'       , env , I n : stack')             -> bVM (prog', env, I (n+1) : stack')
-  (PRED:prog'       , env , I n : stack')             -> bVM (prog', env, I (max 0 (n-1)) : stack')
-  (FIX:prog'        , env , Fun efun body : stack'  ) -> bVM (prog', env, Fun efix body : stack')
-    where efix = Fun efix body : efun
-  (IFZ:prog'        , env , I n: val1: val2: stack' ) -> if n == 0
-                                                         then  bVM (prog', env, val1:stack')
-                                                         else  bVM (prog', env, val2:stack')
-  (STOP:_           , _   , _                     )   -> return ()
-  (PRINT:_          , _   , x:_                   )   -> liftIO $ print x
+  (RETURN:_        , _   , val:RA env prog:stack) -> bVM (prog, env, val:stack) 
+  (CONST:val:prog  , env , stack                   ) -> bVM (prog         , env       , I val:stack           )
+  (ACCESS:i:prog   , env , stack                   ) -> bVM (prog         , env       , env!!i:stack          )
+  (FUNCTION:l:rest , env , stack                   ) -> bVM (prog'        , env       , Fun env body:stack    )
+                                                  where (body , prog') = splitAt l rest
+  (CALL:prog       , env , val:Fun efun body:stack ) -> bVM (body         , val:efun  , RA env prog : stack   )
+  (SUCC:prog       , env , I n:stack               ) -> bVM (prog         , env       , I (n+1):stack         )
+  (PRED:prog       , env , I n:stack               ) -> bVM (prog         , env       , I (max 0 (n-1)):stack )
+  (FIX:prog        , env , Fun efun body:stack     ) -> bVM (prog         , env       , Fun efix body:stack   )
+                                                  where efix = Fun efix body : efun
+  (IFZ:l:prog      , env , I n:stack               ) -> if n == 0 
+                                                   then bVM (prog         , env       , stack                 )
+                                                   else bVM (drop l prog  , env       , stack                 )
+  (JUMP:l:prog      , env , stack                  ) -> bVM (drop l prog  , env       , stack                 )
+  (STOP:_           , _   , _                      ) -> return ()
+  (PRINT:_          , _   , val:_                  ) -> liftIO $ print val
+  _ -> liftIO $ putStrLn $ "Unrecognized bytecode/state" ++ show stateVM
     
 
 
@@ -153,7 +156,7 @@ parseTerm s = case runP tm s "parseTerm" of
 
 mt :: MonadPCF m => m Bytecode
 --mt = bc =<< (elab . parseTerm) "fix (f: Nat -> Nat) (n: Nat) -> ifz n then 0 else f (pred n)"
-mt = bc =<< (elab . parseTerm) "(fix (suma: Nat -> Nat -> Nat)  (x y: Nat) -> ifz y then x else succ (suma x (pred y))) 5 3"
+mt = bc =<< (elab . parseTerm) "(fix (suma: Nat -> Nat -> Nat)  (x y: Nat) -> ifz y then x else succ (suma x (pred y))) 100000 23456"
 
-mtc :: MonadPCF m => m Bytecode
+mtc :: MonadPCF m => m ()
 mtc = mt >>= runBC
