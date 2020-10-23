@@ -16,3 +16,5 @@ compiler.cabal
 
 programs/debug.pcf
 hie.yaml
+
+*.byte
