@@ -57,8 +57,7 @@ resolveTypesDecl decl = do ty <- resolveType $ declType decl
 desugarTerm :: STm info -> Tm info STy Name
 desugarTerm term = case term of
     -- sugared
-    SLet i x xt t1 t2           -> App i (Lam i x xt (desugarTerm t2)) (desugarTerm t1)
-
+    SLet i x xt t1 t2           -> Let i x xt (desugarTerm t1) (desugarTerm t2)
     SLetLam i f ft bs t1 t2     -> let bs' = expandBinders bs
                                    in desugarTerm $ SLet i f (foldr chainTypes ft bs') (SLam i bs t1) t2
 
@@ -99,6 +98,10 @@ resolveTypesTerm term = case term of
     Lam i x xt t -> do  t' <- resolveTypesTerm t
                         xt' <- resolveType xt
                         return $ Lam i x xt' t'
+    Let i x xt t1 t2 -> do t1' <- resolveTypesTerm t1
+                           t2' <- resolveTypesTerm t2
+                           xt' <- resolveType xt
+                           return $ Let i x xt' t1' t2'
 
 
 expandBinders :: MultiBinder -> [(Name, STy)]
@@ -132,5 +135,6 @@ bruijnize (App p h a)           = App p (bruijnize h) (bruijnize a)
 bruijnize (Fix p f fty x xty t) = Fix p f fty x xty (closeN [f, x] (bruijnize t))
 bruijnize (IfZ p c t e)         = IfZ p (bruijnize c) (bruijnize t) (bruijnize e)
 bruijnize (UnaryOp i o t)       = UnaryOp i o (bruijnize t)
+bruijnize (Let p x xt t1 t2)    = Let p x xt (bruijnize t1) (close x (bruijnize t2))
 
      

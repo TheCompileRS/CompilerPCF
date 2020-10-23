@@ -95,14 +95,20 @@ bc term = case term of
                             return $ p1 ++ [IFZ, l2 + 2] ++ p2 ++ [JUMP, l3] ++ p3
     Fix _ _ _ _ _ t   -> do p <- bc t
                             return $ [FUNCTION, length p + 1] ++ p ++ [RETURN, FIX]
+    Let _ _ _ t1 t2   -> do p1 <- bc t1
+                            p2 <- bc t2
+                            return $ p1 ++ [SHIFT] ++ p2 ++ [DROP]
   where 
     compileUnaryOp op = case op of
       Succ -> SUCC
       Pred -> PRED
 
-type Module = [Decl Ty Name] -- ?? que es Module??
-bytecompileModule :: MonadPCF m => Module -> m Bytecode
-bytecompileModule _ = error "implementame"
+bytecompileModule :: MonadPCF m => [Decl Ty Term] -> m Bytecode
+bytecompileModule prog = bc $ foldr letter lastSymbol prog
+ where 
+  lastDecl = last prog
+  lastSymbol = V (declPos lastDecl) $ Free $ declName lastDecl
+  letter d term = Let (declPos d) (declName d) (declType d) (declBody d) term
 
 -- | Toma un bytecode, lo codifica y lo escribe un archivo 
 bcWrite :: Bytecode -> FilePath -> IO ()

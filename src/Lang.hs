@@ -85,6 +85,7 @@ data Tm info ty var =
   | UnaryOp info UnaryOp (Tm info ty var)
   | Fix info Name ty Name ty (Tm info ty var)
   | IfZ info (Tm info ty var) (Tm info ty var) (Tm info ty var)
+  | Let info Name ty (Tm info ty var) (Tm info ty var)
   deriving (Show, Functor)
 
 type NTerm = Tm Pos Ty Name   -- ^ 'Tm' tiene 'Name's como variables ligadas y libres, guarda posición

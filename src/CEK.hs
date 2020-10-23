@@ -58,6 +58,7 @@ search term e k = case term of
         Const _ (CNat n) -> destroy (VNat n) k
         Lam _ x xt t      -> destroy (CFun e x xt t) k
         Fix _ f ft x xt t  -> destroy (CFix e f ft x xt t) k
+        Let i x xt t1 t2 -> search (App i (Lam i x xt t2) t1) e k
 
 -- | 'destroy' Ejecuta una fase de reducción de la máquina CEK, sobre un valor
 destroy :: MonadPCF m => Val -> Kont -> m Val
