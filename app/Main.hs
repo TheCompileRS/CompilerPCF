@@ -14,6 +14,7 @@ module Main where
 
 import System.Console.Haskeline ( defaultSettings, getInputLine, runInputT, InputT )
 import Control.Monad.Catch (MonadMask)
+import Data.Maybe ( catMaybes ) 
 
 --import Control.Monad
 import Control.Monad.Trans
@@ -33,14 +34,78 @@ import PPrint ( pp , ppTy )
 import MonadPCF
 import TypeChecker ( tc, tcDecl )
 import CEK (search, valToTerm)
+import Options.Applicative
+import Bytecompile (bcWrite, bytecompileModule)
+
+data Mode = Interactive
+          | Typecheck
+          | Bytecompile
+          | Run
+
+-- | Parser de banderas
+parseMode :: Parser Mode
+parseMode = flag' Typecheck ( long "typecheck" <> short 't' <> help "Solo chequear tipos")
+            <|> flag' Bytecompile (long "bytecompile" <> short 'c' <> help "Compilar a la BVM")
+            <|> flag' Run (long "run" <> short 'r' <> help "Ejecutar bytecode en la BVM")
+            <|> flag Interactive Interactive ( long "interactive" <> short 'i'
+                                               <> help "Ejecutar en forma interactiva" )
+-- | Parser de opciones general, consiste de un modo y una lista de archivos a procesar
+parseArgs :: Parser (Mode,[FilePath])
+parseArgs = (,) <$> parseMode <*> many (argument str (metavar "FILES..."))
+
+main :: IO ()
+main = execParser opts >>= go
+  where
+    opts = info (parseArgs <**> helper)
+                ( fullDesc
+                  <> progDesc "Compilador de PCF"
+                  <> header "Compilador de PCF de la materia Compiladores 2020" )
+    
+    go :: (Mode,[FilePath]) -> IO ()
+    go (Interactive,files) = do runPCF (runInputT defaultSettings (main' files))
+                                return ()
+    go (Typecheck, files) = undefined
+    go (Bytecompile, files) = do runPCF $ bcCompileFiles files
+                                 return ()
+    go (Run,files) = do print files
+
+bcCompileFiles ::  MonadPCF m => [String] -> m ()
+bcCompileFiles []     = return ()
+bcCompileFiles (x:xs) = do
+        modify (\s -> s { lfile = x, inter = False })
+        bcCompileFile x
+        bcCompileFiles xs
+
+bcCompileFile ::  MonadPCF m => String -> m ()
+bcCompileFile f = do
+    printPCF ("Abriendo "++f++"...")
+    let filename = reverse(dropWhile isSpace (reverse f))
+    x <- liftIO $ catch (readFile filename)
+               (\e -> do let err = show (e :: IOException)
+                         hPutStr stderr ("No se pudo abrir el archivo " ++ filename ++ ": " ++ err ++"\n")
+                         return "")
+    sdecls <- parseIO filename program x
+    decls <- liftM catMaybes $ (mapM elabDecl) sdecls 
+    code <- bytecompileModule decls
+    let newFilename = (take (length filename - 3)) filename ++ "byte"
+    printPCF $ show $ length code
+    liftIO $ bcWrite code newFilename 
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 prompt :: String
 prompt = "PCF> "
-
-main :: IO ()
-main = do args <- getArgs
-          runPCF (runInputT defaultSettings (main' args))
-          return ()
           
 main' :: (MonadPCF m, MonadMask m) => [String] -> InputT m ()
 main' args = do
@@ -66,6 +131,8 @@ compileFiles (x:xs) = do
         modify (\s -> s { lfile = x, inter = False })
         compileFile x
         compileFiles xs
+
+
 
 compileFile ::  MonadPCF m => String -> m ()
 compileFile f = do

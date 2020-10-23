@@ -25,6 +25,7 @@ import qualified Data.ByteString.Lazy as BS
 import Data.Binary ( Word32, Binary(put, get), decode, encode )
 import Data.Binary.Put ( putWord32le )
 import Data.Binary.Get ( getWord32le, isEmpty )
+import Debug.Trace (trace)
 
 type Opcode = Int
 type Bytecode = [Int]
@@ -74,6 +75,7 @@ pattern PRINT    = 14
 
 bc :: MonadPCF m => Term -> m Bytecode
 bc term = case term of
+   -- _ | trace ("bcing " ++ show term ++ "\n") False -> undefined
     V _ (Bound i)     -> return [ACCESS, i]
     V i (Free x)      -> do mx <- lookupDecl x
                             case mx of
@@ -104,11 +106,16 @@ bc term = case term of
       Pred -> PRED
 
 bytecompileModule :: MonadPCF m => [Decl Ty Term] -> m Bytecode
-bytecompileModule prog = bc $ foldr letter lastSymbol prog
+bytecompileModule prog = do
+    let orto = foldr letter lastSymbol prog
+    --printPCF $ show orto
+    code <- bc $ orto 
+    printPCF $ show code
+    return $ code ++ [PRINT, STOP]
  where 
   lastDecl = last prog
   lastSymbol = V (declPos lastDecl) $ Free $ declName lastDecl
-  letter d term = Let (declPos d) (declName d) (declType d) (declBody d) term
+  letter d term = Let (declPos d) (declName d) (declType d) (declBody d) (close (declName d) term)
 
 -- | Toma un bytecode, lo codifica y lo escribe un archivo 
 bcWrite :: Bytecode -> FilePath -> IO ()
@@ -123,7 +130,7 @@ bcRead :: FilePath -> IO Bytecode
 bcRead filename = map fromIntegral <$> un32  <$> decode <$> BS.readFile filename
 
 runBC :: MonadPCF m => Bytecode -> m ()
-runBC prog = bVM (prog ++ [PRINT, STOP], [], [])
+runBC prog = bVM (prog, [], [])
 
 data Val = I Int | Fun Env Bytecode | RA Env Bytecode
   deriving Show
