@@ -18,3 +18,5 @@ programs/debug.pcf
 hie.yaml
 
 *.byte
+
+bvm

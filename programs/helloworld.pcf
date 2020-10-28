@@ -25,3 +25,6 @@ let RNat (z: Nat) (s: Nat -> Nat -> Nat) : Nat -> Nat
 let mu (f: Nat -> Nat) : Nat 
     = let rec try (n: Nat) : Nat = ifz f n then n else try (succ n)
       in try 0
+
+# debe dar 24
+let ans : Nat = fact 4
