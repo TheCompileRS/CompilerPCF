@@ -69,12 +69,12 @@ desugarTerm term = case term of
     SFix i f ft bs t            -> let (x,xt):rest = expandBinders bs
                                    in Fix i f ft x xt $ foldr (constructFun i) (desugarTerm t) rest
     -- base
-    BV i x              -> V i x
-    BConst i v          -> Const i v
-    BApp i t1 t2        -> App i (desugarTerm t1) (desugarTerm t2)
-    BUnaryOp i op t     -> UnaryOp i op (desugarTerm t)
-    
-    BIfZ i t1 t2 t3     -> IfZ i (desugarTerm t1) (desugarTerm t2) (desugarTerm t3)
+    BV i x               -> V i x
+    BConst i v           -> Const i v
+    BApp i t1 t2         -> App i (desugarTerm t1) (desugarTerm t2)
+    BUnaryOp i op t      -> UnaryOp i op (desugarTerm t)
+    BBinaryOp i op t1 t2 -> BinaryOp i op (desugarTerm t1) (desugarTerm t2)
+    BIfZ i t1 t2 t3      -> IfZ i (desugarTerm t1) (desugarTerm t2) (desugarTerm t3)
 
 
 -- | 'resolveTypesTerm' quita el azucar sintáctico de los términos
@@ -87,6 +87,9 @@ resolveTypesTerm term = case term of
                         return $ App i t1' t2'
     UnaryOp i op t -> do    t' <- resolveTypesTerm t
                             return $ UnaryOp i op t'
+    BinaryOp i op t1 t2 -> do t1' <- resolveTypesTerm t1
+                              t2' <- resolveTypesTerm t2    
+                              return $ BinaryOp i op t1' t2'            
     IfZ i t1 t2 t3 -> do    t1' <- resolveTypesTerm t1
                             t2' <- resolveTypesTerm t2
                             t3' <- resolveTypesTerm t3
@@ -135,6 +138,7 @@ bruijnize (App p h a)           = App p (bruijnize h) (bruijnize a)
 bruijnize (Fix p f fty x xty t) = Fix p f fty x xty (closeN [f, x] (bruijnize t))
 bruijnize (IfZ p c t e)         = IfZ p (bruijnize c) (bruijnize t) (bruijnize e)
 bruijnize (UnaryOp i o t)       = UnaryOp i o (bruijnize t)
+bruijnize (BinaryOp i o t1 t2)  = BinaryOp i o (bruijnize t1) (bruijnize t2)
 bruijnize (Let p x xt t1 t2)    = Let p x xt (bruijnize t1) (close x (bruijnize t2))
 
      

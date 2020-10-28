@@ -6,6 +6,7 @@
 ## Preguntar:
 	- ~debemos pasar info y tipos a traves de los pasos de la maquina ?~
 	- Como hacer para compilar en C??
+	- esta bien nuestro freeVars?
 
 ## Syntatic Sugar
 	- ~Parse PCF1 terms~

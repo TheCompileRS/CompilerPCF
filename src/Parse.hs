@@ -31,7 +31,7 @@ lexer = Tok.makeTokenParser $
          commentLine    = "#",
          reservedNames = ["let", "fun", "fix", "then", "else", 
                           "succ", "pred", "ifz", "Nat", "rec", "in", "type"],
-         reservedOpNames = ["->",":","="],
+         reservedOpNames = ["->", ":", "=", "+", "-"],
          caseSensitive = True
         }
 
@@ -101,12 +101,23 @@ unaryOpName =
       (reserved "succ" *> return Succ)
   <|> (reserved "pred" *> return Pred)
 
+binaryOpName :: P BinaryOp
+binaryOpName =
+      (reservedOp "+" *> return Plus)
+  <|> (reservedOp "-" *> return Minus)
+
 unaryOp :: P STerm
 unaryOp = do
   i <- getPos
   o <- unaryOpName
   a <- atom
   return $ BUnaryOp i o a
+
+binaryOp :: P (STerm -> STerm -> STerm)
+binaryOp = do
+  i  <- getPos
+  o  <- binaryOpName
+  return $ BBinaryOp i o
 
 atom :: P STerm
 atom =     (flip BConst <$> const <*> getPos)
@@ -170,7 +181,10 @@ fix = do i <- getPos
 
 -- | Parser de términos
 tm :: P STerm
-tm = try unaryOp <|> app <|> lam <|> ifz <|>  fix <|> try letFix <|> try letIn <|> letLam   
+tm = chainl1 tm_term binaryOp
+
+tm_term :: P STerm
+tm_term = try unaryOp <|> app <|> lam <|> ifz <|>  fix <|> try letFix <|> try letIn <|> letLam   
 
 letIn :: P STerm
 letIn = do 

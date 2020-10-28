@@ -40,6 +40,9 @@ data Const = CNat Int
 data UnaryOp = Succ | Pred
   deriving Show
 
+data BinaryOp = Plus | Minus
+  deriving Show
+
 type MultiBinder = [([Name], STy)]
 
 -- | tipo de datos de declaraciones azucaradas, parametrizado por el tipo del cuerpo de la declaración
@@ -68,6 +71,7 @@ data STm info = SLet info Name STy (STm info) (STm info)                   -- ^ 
               | BConst info Const
               | BApp info (STm info) (STm info)
               | BUnaryOp info UnaryOp (STm info)
+              | BBinaryOp info BinaryOp (STm info) (STm info)
               | BIfZ info (STm info) (STm info) (STm info)
     deriving (Show)
 
@@ -83,6 +87,7 @@ data Tm info ty var =
   | Lam info Name ty (Tm info ty var)
   | App info (Tm info ty var) (Tm info ty var)
   | UnaryOp info UnaryOp (Tm info ty var)
+  | BinaryOp info BinaryOp (Tm info ty var) (Tm info ty var)
   | Fix info Name ty Name ty (Tm info ty var)
   | IfZ info (Tm info ty var) (Tm info ty var) (Tm info ty var)
   | Let info Name ty (Tm info ty var) (Tm info ty var)
@@ -103,16 +108,20 @@ getInfo (Const i _) = i
 getInfo (Lam i _ _ _) = i
 getInfo (App i _ _ ) = i
 getInfo (UnaryOp i _ _) = i
+getInfo (BinaryOp i _ _ _) = i
+getInfo (Let i _ _ _ _ ) = i
 getInfo (Fix i _ _ _ _ _) = i
 getInfo (IfZ i _ _ _) = i
 
 -- | Obtiene las variables libres de un término.
 freeVars :: Tm info ty Var -> [Name]
-freeVars (V _ (Free v))    = [v]
-freeVars (V _ _)           = []
-freeVars (Lam _ _ _ t)     = freeVars t
-freeVars (App _ l r)       = freeVars l ++ freeVars r
-freeVars (UnaryOp _ _ t)   = freeVars t
-freeVars (Fix _ _ _ _ _ t) = freeVars t
-freeVars (IfZ _ c t e)     = freeVars c ++ freeVars t ++ freeVars e
-freeVars (Const _ _)       = []
+freeVars (V _ (Free v))        = [v]
+freeVars (V _ _)               = []
+freeVars (Lam _ _ _ t)         = freeVars t
+freeVars (App _ l r)           = freeVars l ++ freeVars r
+freeVars (UnaryOp _ _ t)       = freeVars t
+freeVars (BinaryOp _ _ t1 t2)  = freeVars t1 ++ freeVars t2
+freeVars (Let _ _ _ t1 t2)     = freeVars t1 ++ freeVars t2
+freeVars (Fix _ _ _ _ _ t)     = freeVars t
+freeVars (IfZ _ c t e)         = freeVars c ++ freeVars t ++ freeVars e
+freeVars (Const _ _)           = []

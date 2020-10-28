@@ -49,6 +49,7 @@ openAll (Fix p f fty x xty t) =
     Fix p f' fty x' xty (openAll t')
 openAll (IfZ p c t e) = IfZ p (openAll c) (openAll t) (openAll e)
 openAll (UnaryOp i o t) = UnaryOp i o (openAll t)
+openAll (BinaryOp i o t1 t2) = BinaryOp i o (openAll t1) (openAll t2)
 
 -- | Pretty printer de nombres (Doc)
 name2doc :: Name -> Doc
@@ -74,6 +75,10 @@ c2doc (CNat n) = text (show n)
 unary2doc :: UnaryOp -> Doc
 unary2doc Succ = text "succ"
 unary2doc Pred = text "pred"
+
+binary2doc :: BinaryOp -> Doc
+binary2doc Plus = text "+"
+binary2doc Minus = text "-"
 
 collectApp :: NTerm -> (NTerm, [NTerm])
 collectApp t = go [] t where
@@ -118,6 +123,10 @@ t2doc at (IfZ _ c t e) =
 t2doc at (UnaryOp _ o t) =
   parenIf at $
   unary2doc o <+> t2doc True t
+
+t2doc at (BinaryOp _ o t1 t2) =
+  parenIf at $
+  t2doc True t1 <+> binary2doc o <+> t2doc True t2
 
 binding2doc :: (Name, Ty) -> Doc
 binding2doc (x, ty) =
