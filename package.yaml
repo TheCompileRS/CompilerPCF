@@ -1,5 +1,5 @@
 name:                compiler
-version:             0.1.5.0
+version:             0.1.6.3
 github:              "TheCompileRS/CompilerPCF"
 license:             GPL-3
 author:              "Mauro Jaskelioff, Guido Martinez, Román Castellarin y Sebastián Zimmermann"
