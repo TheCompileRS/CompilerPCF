@@ -35,7 +35,7 @@ import MonadPCF
 import TypeChecker ( tc, tcDecl )
 import CEK (search, valToTerm)
 import Options.Applicative
-import Bytecompile (bcWrite, bytecompileModule)
+import Bytecompile (runBC, bcRead, bcWrite, bytecompileModule)
 
 data Mode = Interactive
           | Typecheck
@@ -67,7 +67,14 @@ main = execParser opts >>= go
     go (Typecheck, files) = undefined
     go (Bytecompile, files) = do runPCF $ bcCompileFiles files
                                  return ()
-    go (Run,files) = do print files
+    go (Run,[file]) = do runPCF $ bcRunFile file
+                         return ()
+
+
+bcRunFile :: MonadPCF m => String -> m ()
+bcRunFile filename = do
+        file <- liftIO $ bcRead filename
+        runBC file
 
 bcCompileFiles ::  MonadPCF m => [String] -> m ()
 bcCompileFiles []     = return ()

@@ -72,6 +72,8 @@ pattern JUMP     = 11
 pattern SHIFT    = 12
 pattern DROP     = 13
 pattern PRINT    = 14
+pattern PLUS     = 15
+pattern MINUS    = 16
 
 bc :: MonadPCF m => Term -> m Bytecode
 bc term = case term of
@@ -89,6 +91,9 @@ bc term = case term of
                             return $ p1 ++ p2 ++ [CALL]
     UnaryOp _ op t    -> do p <- bc t
                             return $ p ++ [compileUnaryOp op]
+    BinaryOp _ op t1 t2 -> do p1 <- bc t1
+                              p2 <- bc t2
+                              return $ p1 ++ p2 ++ [compileBinaryOp op]
     IfZ _ t1 t2 t3    -> do p1 <- bc t1
                             p2 <- bc t2
                             p3 <- bc t3
@@ -104,6 +109,9 @@ bc term = case term of
     compileUnaryOp op = case op of
       Succ -> SUCC
       Pred -> PRED
+    compileBinaryOp op = case op of
+      Plus -> PLUS
+      Minus -> MINUS
 
 bytecompileModule :: MonadPCF m => [Decl Ty Term] -> m Bytecode
 bytecompileModule prog = do
@@ -140,23 +148,25 @@ type Stack = [Val]
 bVM :: MonadPCF m => (Bytecode, Env, Stack) -> m ()
 bVM stateVM = case stateVM of
   (RETURN:_        , _        , val:RA env prog:stack) -> bVM (prog, env, val:stack) 
-  (CONST:val:prog  , env      , stack                   ) -> bVM (prog         , env       , I val:stack           )
-  (ACCESS:i:prog   , env      , stack                   ) -> bVM (prog         , env       , env!!i:stack          )
-  (FUNCTION:l:rest , env      , stack                   ) -> bVM (prog'        , env       , Fun env body:stack    )
-                                                       where (body , prog') = splitAt l rest
-  (CALL:prog       , env      , val:Fun efun body:stack ) -> bVM (body         , val:efun  , RA env prog : stack   )
-  (SUCC:prog       , env      , I n:stack               ) -> bVM (prog         , env       , I (n+1):stack         )
-  (PRED:prog       , env      , I n:stack               ) -> bVM (prog         , env       , I (max 0 (n-1)):stack )
-  (FIX:prog        , env      , Fun efun body:stack     ) -> bVM (prog         , env       , Fun efix body:stack   )
-                                                       where efix = Fun efix body : efun
-  (IFZ:l:prog      , env      , I n:stack               ) -> if n == 0 
-                                                        then bVM (prog         , env       , stack                 )
-                                                        else bVM (drop l prog  , env       , stack                 )
-  (JUMP:l:prog     , env      , stack                   ) -> bVM (drop l prog  , env       , stack                 )
-  (SHIFT:prog      , env      , val:stack               ) -> bVM (prog         , val:env   , stack                 )
-  (DROP:prog       , val:env  , stack                   ) -> bVM (prog         , env       , stack                 )
-  (STOP:_          , _        , _                       ) -> return ()
-  (PRINT:_         , _        , val:_                   ) -> liftIO $ print val
+  (CONST:val:prog  , env      , stack                   ) -> bVM (prog         , env       , I val:stack                 )
+  (ACCESS:i:prog   , env      , stack                   ) -> bVM (prog         , env       , env!!i:stack                )
+  (FUNCTION:l:rest , env      , stack                   ) -> bVM (prog'        , env       , Fun env body:stack          )
+                                                       where (body , prog') = splitAt l rest      
+  (CALL:prog       , env      , val:Fun efun body:stack ) -> bVM (body         , val:efun  , RA env prog : stack         )
+  (SUCC:prog       , env      , I n:stack               ) -> bVM (prog         , env       , I (n+1):stack               )
+  (PRED:prog       , env      , I n:stack               ) -> bVM (prog         , env       , I (max 0 (n-1)):stack       )
+  (PLUS:prog       , env      , I n2:I n1:stack         ) -> bVM (prog         , env       , I (n1 + n2):stack           )
+  (MINUS:prog      , env      , I n2:I n1:stack         ) -> bVM (prog         , env       , I (max 0 (n1-n2)):stack     )
+  (FIX:prog        , env      , Fun efun body:stack     ) -> bVM (prog         , env       , Fun efix body:stack         )
+                                                       where efix = Fun efix body : efun      
+  (IFZ:l:prog      , env      , I n:stack               ) -> if n == 0       
+                                                        then bVM (prog         , env       , stack                       )
+                                                        else bVM (drop l prog  , env       , stack                       )
+  (JUMP:l:prog     , env      , stack                   ) -> bVM (drop l prog  , env       , stack                       )
+  (SHIFT:prog      , env      , val:stack               ) -> bVM (prog         , val:env   , stack                       )
+  (DROP:prog       , val:env  , stack                   ) -> bVM (prog         , env       , stack                       )
+  (STOP:_          , _        , _                       ) -> return ()      
+  (PRINT:_         , _        , val:_                   ) -> liftIO $ print val      
   _ -> liftIO $ putStrLn $ "Unrecognized bytecode/state" ++ show stateVM
     
 

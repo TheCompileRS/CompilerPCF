@@ -1,6 +1,6 @@
 # Compiler
 	- Syntactic Sugar
-	- Abstract Machines
+	- ~Abstract Machines~
     - ByteCompilation
     - ByteCompilation in C
     - Testing
@@ -8,6 +8,8 @@
 ## Preguntar:
 	- Como hacer para compilar en C??
 	- esta bien nuestro freeVars?
+    - esta bien tener dos marcos para una misma operacion?
+    - Como medir el tiempo?
 
 ## Syntatic Sugar
 	- ~Parse PCF1 terms~
@@ -23,14 +25,15 @@
 ## Abstract Machines
 	- ~solve syntax sugar~
 	- ~do valToTerm the right way~
-	- in CEK add binary operators
+	- ~in CEK add binary operators~
 
 ## ByteCompilation
     - ~Implement instructions in Byte Compilation~
     - ~Add IfZero~
     - ~Change the Language to accept Let terms.~
     - ~Opt: Modify CEK to accept Let terms.~
-    - Add binary operators
+    - Opt: Add * and / binary operators
+    - ~Add binary operators~
     - Add Help in new Main
     - Add TypeCheck in new Main
 
