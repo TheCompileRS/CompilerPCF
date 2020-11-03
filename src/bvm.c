@@ -59,6 +59,7 @@
 #define PRINT    14
 #define PLUS     15
 #define MINUS    16
+#define TAILCALL 17
 
 #define CHUNK 4096
 
@@ -116,6 +117,14 @@ static inline env env_push(env e, value v)
 	new->v = v;
 	new->next = e;
 	return new;
+}
+
+static inline void env_free(env e)
+{
+	if( e ){
+		env_free(e->next);
+		free(e);
+	}
 }
 
 #if SLOW
@@ -372,6 +381,15 @@ void run(code init_c)
 			value v2 = *--s;
 			value v1 = *--s;
 			(*s++).i = (v1.i - v2.i) < 0 ? 0 : (v1.i - v2.i);
+			break;
+		}
+
+		case TAILCALL:{
+			value v1 = *--s;	// value
+			value v2 = *--s;	// closure
+			//env_free(e);
+			e = env_push(v2.clo.clo_env, v1);
+			c = v2.clo.clo_body;
 			break;
 		}
 

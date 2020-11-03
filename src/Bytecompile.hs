@@ -74,6 +74,24 @@ pattern DROP     = 13
 pattern PRINT    = 14
 pattern PLUS     = 15
 pattern MINUS    = 16
+pattern TAILCALL = 17
+
+tailbc ::MonadPCF m => Term -> m Bytecode
+tailbc term = case term of
+  App _ t1 t2       -> do p1 <- bc t1
+                          p2 <- bc t2
+                          return $ p1 ++ p2 ++ [TAILCALL]
+  IfZ _ t1 t2 t3    -> do p1 <- bc t1
+                          p2 <- tailbc t2
+                          p3 <- tailbc t3
+                          let l2 = length p2
+                          let l3 = length p3
+                          return $ p1 ++ [IFZ, l2 + 2] ++ p2 ++ [JUMP, l3] ++ p3
+  Let _ _ _ t1 t2   -> do p1 <- bc t1
+                          p2 <- tailbc t2
+                          return $ p1 ++ [SHIFT] ++ p2
+  t                 -> do p <- bc t
+                          return $ p ++ [RETURN]
 
 bc :: MonadPCF m => Term -> m Bytecode
 bc term = case term of
@@ -84,8 +102,8 @@ bc term = case term of
                               Just y  -> bc y
                               Nothing -> failPosPCF i $ "Variable " ++ x ++ " no declarada." 
     Const _ (CNat n)  -> return [CONST, n]
-    Lam _ _ _ t       -> do p <- bc t
-                            return $ [FUNCTION, length p + 1] ++ p ++ [RETURN]
+    Lam _ _ _ t       -> do p <- tailbc t
+                            return $ [FUNCTION, length p] ++ p
     App _ t1 t2       -> do p1 <- bc t1
                             p2 <- bc t2
                             return $ p1 ++ p2 ++ [CALL]
@@ -165,6 +183,8 @@ bVM stateVM = case stateVM of
   (JUMP:l:prog     , env      , stack                   ) -> bVM (drop l prog  , env       , stack                       )
   (SHIFT:prog      , env      , val:stack               ) -> bVM (prog         , val:env   , stack                       )
   (DROP:prog       , val:env  , stack                   ) -> bVM (prog         , env       , stack                       )
+  (TAILCALL:_      , _        , val:Fun efun body:stack ) -> bVM (body         , val:efun  , stack                       )
+
   (STOP:_          , _        , _                       ) -> return ()      
   (PRINT:_         , _        , val:_                   ) -> liftIO $ print val      
   _ -> liftIO $ putStrLn $ "Unrecognized bytecode/state" ++ show stateVM

@@ -26,5 +26,13 @@ let mu (f: Nat -> Nat) : Nat
     = let rec try (n: Nat) : Nat = ifz f n then n else try (succ n)
       in try 0
 
-# debe dar 24
+# tailcall suma
+let rec tcsuma (m n : Nat) : Nat =
+    ifz n then m
+          else tcsuma (succ m) (pred n)
+
+# while true (no debe dar volcado de pila)
+let rec whiletrue (x : Nat) : Nat = whiletrue x
+
+# debe dar 3628800
 let ans : Nat = fact 10
