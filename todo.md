@@ -6,9 +6,7 @@
     - Testing
     
 ## Preguntar:
-    - Esta bien nuestro TAILCALL? sospechamos que si porque pudimos construir
-        UN ejemplo que da MLE en bVM de haskell y no con tailcall optimization
-    - Por que la maquina en C pierde tanta memoria? se olvidaron de los frees
+
 ## Syntatic Sugar
 	- ~Parse PCF1 terms~
 	- ~Desugar function~
@@ -29,19 +27,20 @@
     - ~Implement instructions in Byte Compilation~
     - ~Add IfZero~
     - ~Change the Language to accept Let terms.~
-    - ~Opt: Modify CEK to accept Let terms.~
-    - Opt: Add * and / binary operators
     - ~Add binary operators~
     - Add Help in new Main
     - Add TypeCheck in new Main
+    - ~*Opt: Modify CEK to accept Let terms.*~
+    - Opt: Add * and / binary operators
 
 ## ByteCompilation in C
     - ~Add C file, adding IFzero~
     - ~Add binary operations~
     - ~Implement Stack tail calls~
     - ~Modify compilation to use Stack tail calls~
-    - *Opt: Erase Succ and Pred* 
+    - Implement Stack tail calls in recursive functions (CHECK)
     - ~*Opt: Implement TailCalls in Haskell ByteComp*~
+    - *Opt: Erase Succ and Pred* 
 
 ## Testing
 	- Add Testing

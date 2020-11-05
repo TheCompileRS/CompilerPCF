@@ -92,6 +92,8 @@ tailbc term = case term of
   Let _ _ _ t1 t2   -> do p1 <- bc t1
                           p2 <- tailbc t2
                           return $ p1 ++ [SHIFT] ++ p2
+  Fix _ _ _ _ _ t   -> do p <- bc t
+                          return $ p ++ [TAILCALL]
   t                 -> do p <- bc t
                           return $ p ++ [RETURN]
 
@@ -99,33 +101,33 @@ tailbc term = case term of
 bc :: MonadPCF m => Term -> m Bytecode
 bc term = case term of
    -- _ | trace ("bcing " ++ show term ++ "\n") False -> undefined
-    V _ (Bound i)     -> return [ACCESS, i]
-    V i (Free x)      -> do mx <- lookupDecl x
-                            case mx of
-                              Just y  -> bc y
-                              Nothing -> failPosPCF i $ "Variable " ++ x ++ " no declarada." 
-    Const _ (CNat n)  -> return [CONST, n]
-    Lam _ _ _ t       -> do p <- tailbc t
-                            return $ [FUNCTION, length p] ++ p
-    App _ t1 t2       -> do p1 <- bc t1
-                            p2 <- bc t2
-                            return $ p1 ++ p2 ++ [CALL]
-    UnaryOp _ op t    -> do p <- bc t
-                            return $ p ++ [compileUnaryOp op]
+    V _ (Bound i)       -> return [ACCESS, i]
+    V i (Free x)        -> do mx <- lookupDecl x
+                              case mx of
+                                Just y  -> bc y
+                                Nothing -> failPosPCF i $ "Variable " ++ x ++ " no declarada." 
+    Const _ (CNat n)    -> return [CONST, n]
+    Lam _ _ _ t         -> do p <- tailbc t
+                              return $ [FUNCTION, length p] ++ p
+    App _ t1 t2         -> do p1 <- bc t1
+                              p2 <- bc t2
+                              return $ p1 ++ p2 ++ [CALL]
+    UnaryOp _ op t      -> do p <- bc t
+                              return $ p ++ [compileUnaryOp op]
     BinaryOp _ op t1 t2 -> do p1 <- bc t1
                               p2 <- bc t2
                               return $ p1 ++ p2 ++ [compileBinaryOp op]
-    IfZ _ t1 t2 t3    -> do p1 <- bc t1
-                            p2 <- bc t2
-                            p3 <- bc t3
-                            let l2 = length p2
-                            let l3 = length p3
-                            return $ p1 ++ [IFZ, l2 + 2] ++ p2 ++ [JUMP, l3] ++ p3
-    Fix _ _ _ _ _ t   -> do p <- bc t
-                            return $ [FUNCTION, length p + 1] ++ p ++ [RETURN, FIX]
-    Let _ _ _ t1 t2   -> do p1 <- bc t1
-                            p2 <- bc t2
-                            return $ p1 ++ [SHIFT] ++ p2 ++ [DROP]
+    IfZ _ t1 t2 t3      -> do p1 <- bc t1
+                              p2 <- bc t2
+                              p3 <- bc t3
+                              let l2 = length p2
+                              let l3 = length p3
+                              return $ p1 ++ [IFZ, l2 + 2] ++ p2 ++ [JUMP, l3] ++ p3
+    Fix _ _ _ _ _ t     -> do p <- tailbc t
+                              return $ [FUNCTION, length p] ++ p ++ [FIX]
+    Let _ _ _ t1 t2     -> do p1 <- bc t1
+                              p2 <- bc t2
+                              return $ p1 ++ [SHIFT] ++ p2 ++ [DROP]
   where 
     compileUnaryOp op = case op of
       Succ -> SUCC
@@ -137,7 +139,6 @@ bc term = case term of
 bytecompileModule :: MonadPCF m => [Decl Ty Term] -> m Bytecode
 bytecompileModule prog = do
     let orto = foldr letter lastSymbol prog
-    --printPCF $ show orto
     code <- bc $ orto 
     printPCF $ show code
     return $ code ++ [PRINT, STOP]

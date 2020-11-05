@@ -21,7 +21,7 @@ import Control.Monad.Trans
 import Data.List (nub,  intersperse, isPrefixOf )
 import Data.Char ( isSpace )
 import Control.Exception ( catch , IOException )
-import System.Environment ( getArgs )
+--import System.Environment ( getArgs )
 import System.IO ( stderr, hPutStr )
 
 import Global ( GlEnv(..) )
