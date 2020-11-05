@@ -76,6 +76,8 @@ pattern PLUS     = 15
 pattern MINUS    = 16
 pattern TAILCALL = 17
 
+
+-- | 'tailbc' compiles with tail recursion optimization, if it's possible
 tailbc ::MonadPCF m => Term -> m Bytecode
 tailbc term = case term of
   App _ t1 t2       -> do p1 <- bc t1
@@ -93,6 +95,7 @@ tailbc term = case term of
   t                 -> do p <- bc t
                           return $ p ++ [RETURN]
 
+-- | 'bc' compiles a set of terms into bytecode (to a virtual machine)
 bc :: MonadPCF m => Term -> m Bytecode
 bc term = case term of
    -- _ | trace ("bcing " ++ show term ++ "\n") False -> undefined
@@ -163,6 +166,8 @@ data Val = I Int | Fun Env Bytecode | RA Env Bytecode
 type Env = [Val]
 type Stack = [Val]
 
+
+-- | Emulates a virtual machine, taking a bytecode and changing the enviroment and stack of the machine
 bVM :: MonadPCF m => (Bytecode, Env, Stack) -> m ()
 bVM stateVM = case stateVM of
   (RETURN:_        , _        , val:RA env prog:stack) -> bVM (prog, env, val:stack) 
