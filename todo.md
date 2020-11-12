@@ -29,7 +29,7 @@
     - ~Add IfZero~
     - ~Change the Language to accept Let terms.~
     - ~Add binary operators~
-    - Add Help in new Main
+    - ~Add Help in new Main~
     - Add TypeCheck in new Main
     - ~*Opt: Modify CEK to accept Let terms.*~
     - Opt: Add * and / binary operators
