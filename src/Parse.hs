@@ -68,8 +68,11 @@ getPos = do pos <- getPosition
             return $ Pos (sourceLine pos) (sourceColumn pos)
 
 tyVar :: P STy
-tyVar = do name <- var -- TODO: replace by real parser
-           return $ SSynTy name
+tyVar = Tok.lexeme lexer $ do
+    c  <- upper
+    cs <- option "" identifier
+    reserved (c:cs)
+    return $ SSynTy(c:cs)
 
 tyatom :: P STy
 tyatom = (reserved "Nat" >> return SNatTy)

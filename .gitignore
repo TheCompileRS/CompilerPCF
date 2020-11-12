@@ -12,6 +12,7 @@ app/Main
 *.blg
 *.bbl
 compiladores.cabal
+compilerpcf.cabal
 compiler.cabal
 
 programs/debug.pcf

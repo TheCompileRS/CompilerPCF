@@ -7,7 +7,7 @@ cabal-version: 1.12
 -- hash: ba790c9cf9da7bb732a8a9c300b2fbd923d44b6f5cf404acdba619f96c94f45e
 
 name:           compilerpcf
-version:        0.1.7.0
+version:        0.1.7.1
 description:    Please see the README on GitHub at <https://github.com/TheCompileRS/CompilerPCF#readme>
 homepage:       https://github.com/TheCompileRS/CompilerPCF#readme
 bug-reports:    https://github.com/TheCompileRS/CompilerPCF/issues

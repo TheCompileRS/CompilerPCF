@@ -15,8 +15,9 @@
 	- ~Type namespaces~
 	- ~Beautify elab~
 	- ~UNARY OP IS BROKEN (always eta-expands)~
-    - Types PrettyPrint 
-	- Parser for type names (uppercase + alphanum) (check reserved keywords)
+	- ~Parser for type names (uppercase + alphanum) (check reserved keywords)~
+    - Types PrettyPrint (Pa mi ya fue)
+
 
 ## Abstract Machines
 	- ~solve syntax sugar~
