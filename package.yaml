@@ -49,7 +49,7 @@ executables:
     - -fwarn-name-shadowing
     - -fwarn-incomplete-patterns
     dependencies:
-    - compiler
+    - compilerpcf
 
 tests:
   compiler-test:
@@ -60,4 +60,4 @@ tests:
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
-    - compiler
+    - compilerpcf

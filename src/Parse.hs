@@ -16,6 +16,7 @@ import Text.Parsec hiding (runP)
 --import Data.Char ( isNumber, ord )
 import qualified Text.Parsec.Token as Tok
 import Text.ParserCombinators.Parsec.Language ( GenLanguageDef(..), emptyDef )
+import Data.Char (isUpper, isLower)
 
 type P = Parsec String ()
 
@@ -61,18 +62,24 @@ num :: P Int
 num = fromInteger <$> natural
 
 var :: P Name
-var = identifier 
+var = identifier
+
+-- ~ do
+    -- ~ (c:cs) <- identifier 
+    -- ~ if (isLower c) 
+    -- ~ then return (c:cs)
+    -- ~ else parserZero
 
 getPos :: P Pos
 getPos = do pos <- getPosition
             return $ Pos (sourceLine pos) (sourceColumn pos)
 
 tyVar :: P STy
-tyVar = Tok.lexeme lexer $ do
-    c  <- upper
-    cs <- option "" identifier
-    reserved (c:cs)
-    return $ SSynTy(c:cs)
+tyVar = do
+    (c:cs)  <- identifier
+    if (isUpper c) 
+    then return $ SSynTy(c:cs) 
+    else parserZero
 
 tyatom :: P STy
 tyatom = (reserved "Nat" >> return SNatTy)
