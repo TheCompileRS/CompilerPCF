@@ -1,6 +1,6 @@
 {-# LANGUAGE PatternSynonyms #-}
 {-|
-Module      : Byecompile
+Module      : Bytecompile
 Description : Compila a bytecode. Ejecuta bytecode.
 Copyright   : (c) Roman Castellarin, Sebastián Zimmermann, Mauro Jaskelioff, Guido Martínez, 2020.
 License     : GPL-3
