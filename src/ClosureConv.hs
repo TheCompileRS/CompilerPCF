@@ -34,44 +34,24 @@ data IrDecl = IrVal { irDeclName :: Name, irDeclDef :: IrTerm }
 
 type ConvertMonad = StateT Int (Writer [IrDecl])
 
--- let f (y:Nat) : Nat = 1 + x
--- TRANSFORMS TO
--- let f : Nat -> Nat = fun (y : Nat) -> 1 + x
--- CONSIDER RHS ONLY:
--- fun (y : Nat) -> 1 + x
--- WHICH TRANSFORMS TO
--- IrFun { irDeclName = "__0", 
---         irDeclArity = 2, 
---         irDeclArgNames = ["__clo2","__y1"], 
---         irDeclBody = IrBinaryOp Add (IrConst (CNat 1)) (IrVar "x")}
-
-
---closerConver (Lam y t)  = MkClosure('__0', IrVar <$> freeVars t )
---  
---  
---  IrFun{
---    __0,
---    2,
---    [__clo2, __y1]
---    pepe
---  } 
-
---IrLet fv[i] (IrAccess <??> i) IrTerm
 
 makeTerm :: Name -> [Name] -> IrTerm -> IrTerm
 makeTerm cloName fv t = foldr f t (zip fv [1..])
   where f (v, i) b = IrLet v (IrAccess (IrVar cloName) i) b  
+
+genName :: String -> ConvertMonad String
+genName s = do n <- get
+               modify (+1)
+               return $ "__" ++ s ++ show n 
 
 closureConvert :: Term -> ConvertMonad IrTerm
 closureConvert term = case term of
     V _ (Free var)      -> return $ IrVar var
     V _ (Bound _)       -> error "variable should have been opened by this point"
     Const _ c           -> return $ IrConst c  
-    Lam _ x _ t         -> do n <- get
-                              let funName = "__" ++ show n
-                              let varName = "__" ++ x ++ show (n+1)
-                              let cloName = "__clo" ++ show (n+2)
-                              modify (+3)
+    Lam _ x _ t         -> do funName <- genName ""
+                              varName <- genName x
+                              cloName <- genName "clo"
                               t' <- closureConvert (open varName t)
                               let fv = filter ("__" `isPrefixOf`) $ freeVars t
                               let lets = makeTerm cloName fv t' 
@@ -80,6 +60,7 @@ closureConvert term = case term of
     App _ f x           -> do f' <- closureConvert f
                               x' <- closureConvert x
                               return $ IrCall (IrAccess f' 0) [f', x']
+                              -- change use IRLET
     UnaryOp {}          -> error "unary operators should have been translated to binary"
     BinaryOp _ op t1 t2 -> do t1' <- closureConvert t1
                               t2' <- closureConvert t2
@@ -90,9 +71,7 @@ closureConvert term = case term of
                               t3' <- closureConvert t3
                               return $ IrIfZ t1' t2' t3'                   
     Let _ v _ t1 t2     -> do t1' <- closureConvert t1
-                              n <- get
-                              let varName = "__" ++ v ++ show n
-                              modify (+1)
+                              varName <- genName v
                               t2' <- closureConvert (open varName t2)
                               return $ IrLet varName t1' t2'
 

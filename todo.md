@@ -7,14 +7,14 @@
     - Testing
     
 ## Questions:
-    - Se puede preconvertir de locally nameless a fully named y
-        solo luego llamar a la funcion closureConvert ?
-    - Por que es
-        IrAccess IrTerm Int
-     y no
-        IrAccess Name Int
-     ??
-    - freeVars?
+    - ~Se puede preconvertir de locally nameless a fully named y~
+        ~solo luego llamar a la funcion closureConvert ?~
+    - ~Por que es~
+        ~IrAccess IrTerm Int~
+     ~y no~
+        ~IrAccess Name Int~
+     ~??~
+    - ~freeVars?~
     
 
 ## Syntatic Sugar
@@ -57,7 +57,6 @@
     - ~Make closure convertions for terms~
     - ~Add cc in main~
     - Make Closure Convertions for recursive functions
-    - Hoisting
     - 
 
 ## Testing
