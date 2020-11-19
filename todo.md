@@ -3,6 +3,7 @@
 	- ~Abstract Machines~
     - ByteCompilation
     - ByteCompilation in C
+    - Closure Convertions
     - Testing
     
 ## Questions:
@@ -51,6 +52,13 @@
     - Implement Stack tail calls in recursive functions (CHECK)
     - ~*Opt: Implement TailCalls in Haskell ByteComp*~
     - *Opt: Erase Succ and Pred* 
+
+## Closure Convertions
+    - ~Make closure convertions for terms~
+    - ~Add cc in main~
+    - Make Closure Convertions for recursive functions
+    - Hoisting
+    - 
 
 ## Testing
 	- Add Testing
