@@ -5,7 +5,16 @@
     - ByteCompilation in C
     - Testing
     
-## Preguntar:
+## Questions:
+    - Se puede preconvertir de locally nameless a fully named y
+        solo luego llamar a la funcion closureConvert ?
+    - Por que es
+        IrAccess IrTerm Int
+     y no
+        IrAccess Name Int
+     ??
+    - freeVars?
+    
 
 ## Syntatic Sugar
 	- ~Parse PCF1 terms~
