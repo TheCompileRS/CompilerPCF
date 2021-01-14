@@ -8,7 +8,7 @@ Stability   : experimental
 TODO WHAT IT DOES
 -}
 module ClosureConv
-  (runCC)
+  (runCC, IrTerm(..), IrDecl(..))
  where
 
 import Lang 
