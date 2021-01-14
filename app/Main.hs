@@ -3,7 +3,7 @@
 {-|
 Module      : Main
 Description : Compilador de PCF.
-Copyright   : (c) Mauro Jaskelioff, Guido Martínez, 2020.
+Copyright   : (c) Mauro Jaskelioff, Guido Martínez, Roman Castellarin, Sebastián Zimmermann, 2020.
 License     : GPL-3
 Maintainer  : mauro@fceia.unr.edu.ar
 Stability   : experimental
@@ -14,13 +14,14 @@ module Main where
 
 import System.Console.Haskeline ( defaultSettings, getInputLine, runInputT, InputT )
 import Control.Monad.Catch (MonadMask)
+import Data.Maybe ( catMaybes ) 
 
 --import Control.Monad
 import Control.Monad.Trans
-import Data.List (nub,  intersperse, isPrefixOf )
+import Data.List (intercalate, nub,  intersperse, isPrefixOf )
 import Data.Char ( isSpace )
 import Control.Exception ( catch , IOException )
-import System.Environment ( getArgs )
+--import System.Environment ( getArgs )
 import System.IO ( stderr, hPutStr )
 
 import Global ( GlEnv(..) )
@@ -28,18 +29,102 @@ import Errors
 import Lang
 import Parse ( P, tm, program, declOrTm, runP )
 import Elab ( elab, elabDecl )
-import Eval ( eval )
+--import Eval ( eval )
 import PPrint ( pp , ppTy )
 import MonadPCF
 import TypeChecker ( tc, tcDecl )
+import CEK (search, valToTerm)
+import Options.Applicative
+import Bytecompile (runBC, bcRead, bcWrite, bytecompileModule)
+import ClosureConv (runCC)
+
+data Mode = Interactive
+          | Typecheck
+          | Bytecompile
+          | Run
+          | ClosureConv
+
+-- | Parser de banderas
+parseMode :: Parser Mode
+parseMode = flag' Typecheck ( long "typecheck" <> short 't' <> help "Solo chequear tipos")
+            <|> flag' Bytecompile (long "bytecompile" <> short 'c' <> help "Compilar a la BVM")
+            <|> flag' Run (long "run" <> short 'r' <> help "Ejecutar bytecode en la BVM")
+            <|> flag' ClosureConv (long "cc" <> help "Conversion de clausuras")
+            <|> flag Interactive Interactive ( long "interactive" <> short 'i'
+                                               <> help "Ejecutar en forma interactiva" )
+            
+-- | Parser de opciones general, consiste de un modo y una lista de archivos a procesar
+parseArgs :: Parser (Mode,[FilePath])
+parseArgs = (,) <$> parseMode <*> many (argument str (metavar "FILES..."))
+
+main :: IO ()
+main = execParser opts >>= go
+  where
+    opts = info (parseArgs <**> helper)
+                ( fullDesc
+                  <> progDesc "Compilador de PCF"
+                  <> header "Compilador de PCF de la materia Compiladores 2020" )
+    
+    go :: (Mode,[FilePath]) -> IO ()
+    go (Interactive,files) = do runPCF (runInputT defaultSettings (main' files))
+                                return ()
+    go (Typecheck, files) = undefined
+    go (Bytecompile, files) = do runPCF $ bcCompileFiles files
+                                 return ()
+    go (Run,[file]) = do runPCF $ bcRunFile file
+                         return ()
+    go (ClosureConv,files) = do  runPCF $ compileClosures files 
+                                 return ()
+    go _ = return ()
+
+compileClosures :: MonadPCF m => [String] -> m ()
+compileClosures []     = return ()
+compileClosures (x:xs) = do
+        modify (\s -> s { lfile = x, inter = False })
+        compileClosure x
+        compileClosures xs
+
+compileClosure :: MonadPCF m => String -> m ()
+compileClosure file = do
+    printPCF ("Abriendo "++file++"...")
+    let filename = reverse(dropWhile isSpace (reverse file))
+    x <- liftIO $ catch (readFile filename)
+               (\e -> do let err = show (e :: IOException)
+                         hPutStr stderr ("No se pudo abrir el archivo " ++ filename ++ ": " ++ err ++"\n")
+                         return "")
+    sdecls <- parseIO filename program x
+    decls <- catMaybes <$> mapM elabDecl sdecls 
+    printPCF $ intercalate "\n" $ show <$> runCC decls
+
+bcRunFile :: MonadPCF m => String -> m ()
+bcRunFile filename = do
+        file <- liftIO $ bcRead filename
+        runBC file
+
+bcCompileFiles ::  MonadPCF m => [String] -> m ()
+bcCompileFiles []     = return ()
+bcCompileFiles (x:xs) = do
+        modify (\s -> s { lfile = x, inter = False })
+        bcCompileFile x
+        bcCompileFiles xs
+
+bcCompileFile ::  MonadPCF m => String -> m ()
+bcCompileFile f = do
+    printPCF ("Abriendo "++f++"...")
+    let filename = reverse(dropWhile isSpace (reverse f))
+    x <- liftIO $ catch (readFile filename)
+               (\e -> do let err = show (e :: IOException)
+                         hPutStr stderr ("No se pudo abrir el archivo " ++ filename ++ ": " ++ err ++"\n")
+                         return "")
+    sdecls <- parseIO filename program x
+    decls <- catMaybes <$> mapM elabDecl sdecls 
+    code <- bytecompileModule decls
+    let newFilename = take (length filename - 3) filename ++ "byte"
+    printPCF $ show $ length code
+    liftIO $ bcWrite code newFilename 
 
 prompt :: String
 prompt = "PCF> "
-
-main :: IO ()
-main = do args <- getArgs
-          runPCF (runInputT defaultSettings (main' args))
-          return ()
           
 main' :: (MonadPCF m, MonadMask m) => [String] -> InputT m ()
 main' args = do
@@ -66,6 +151,8 @@ compileFiles (x:xs) = do
         compileFile x
         compileFiles xs
 
+
+
 compileFile ::  MonadPCF m => String -> m ()
 compileFile f = do
     printPCF ("Abriendo "++f++"...")
@@ -89,7 +176,8 @@ handleDecl decl = do
     Nothing -> return ()
     Just (Decl p x ty tt) -> do
         tcDecl (Decl p x ty tt)
-        te <- eval tt
+        --te <- eval tt
+        te <- liftM valToTerm $ search tt [] []
         addDecl (Decl p x ty te)
 
 data Command = Compile CompileForm
@@ -177,7 +265,8 @@ handleTerm t = do
          tt <- elab t
          s <- get
          ty <- tc tt (tyEnv s)
-         te <- eval tt
+         --te <- eval tt
+         te <- liftM valToTerm $ search tt [] [] 
          printPCF (pp te ++ " : " ++ ppTy ty)
 
 printPhrase   :: MonadPCF m => String -> m ()
@@ -186,7 +275,7 @@ printPhrase x =
     x' <- parseIO "<interactive>" tm x
     ex <- elab x'
     t  <- case x' of 
-           (BV p f) -> maybe ex id <$> lookupDecl f
+           (BV _ f) -> maybe ex id <$> lookupDecl f
            _        -> return ex  
     printPCF "STerm:"
     printPCF (show x')

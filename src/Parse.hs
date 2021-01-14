@@ -16,6 +16,7 @@ import Text.Parsec hiding (runP)
 --import Data.Char ( isNumber, ord )
 import qualified Text.Parsec.Token as Tok
 import Text.ParserCombinators.Parsec.Language ( GenLanguageDef(..), emptyDef )
+import Data.Char (isUpper, isLower)
 
 type P = Parsec String ()
 
@@ -31,7 +32,7 @@ lexer = Tok.makeTokenParser $
          commentLine    = "#",
          reservedNames = ["let", "fun", "fix", "then", "else", 
                           "succ", "pred", "ifz", "Nat", "rec", "in", "type"],
-         reservedOpNames = ["->",":","="],
+         reservedOpNames = ["->", ":", "=", "+", "-"],
          caseSensitive = True
         }
 
@@ -61,15 +62,24 @@ num :: P Int
 num = fromInteger <$> natural
 
 var :: P Name
-var = identifier 
+var = identifier
+
+-- ~ do
+    -- ~ (c:cs) <- identifier 
+    -- ~ if (isLower c) 
+    -- ~ then return (c:cs)
+    -- ~ else parserZero
 
 getPos :: P Pos
 getPos = do pos <- getPosition
             return $ Pos (sourceLine pos) (sourceColumn pos)
 
 tyVar :: P STy
-tyVar = do name <- var -- TODO: replace by real parser
-           return $ SSynTy name
+tyVar = do
+    (c:cs)  <- identifier
+    if (isUpper c) 
+    then return $ SSynTy(c:cs) 
+    else parserZero
 
 tyatom :: P STy
 tyatom = (reserved "Nat" >> return SNatTy)
@@ -101,12 +111,23 @@ unaryOpName =
       (reserved "succ" *> return Succ)
   <|> (reserved "pred" *> return Pred)
 
+binaryOpName :: P BinaryOp
+binaryOpName =
+      (reservedOp "+" *> return Plus)
+  <|> (reservedOp "-" *> return Minus)
+
 unaryOp :: P STerm
 unaryOp = do
   i <- getPos
   o <- unaryOpName
   a <- atom
   return $ BUnaryOp i o a
+
+binaryOp :: P (STerm -> STerm -> STerm)
+binaryOp = do
+  i  <- getPos
+  o  <- binaryOpName
+  return $ BBinaryOp i o
 
 atom :: P STerm
 atom =     (flip BConst <$> const <*> getPos)
@@ -170,7 +191,10 @@ fix = do i <- getPos
 
 -- | Parser de términos
 tm :: P STerm
-tm = app <|> lam <|> ifz <|> unaryOp <|> fix <|> try letFix <|> try letIn <|> letLam   
+tm = chainl1 tm_term binaryOp
+
+tm_term :: P STerm
+tm_term = try unaryOp <|> app <|> lam <|> ifz <|>  fix <|> try letFix <|> try letIn <|> letLam   
 
 letIn :: P STerm
 letIn = do 
@@ -269,4 +293,4 @@ runP p s filename = runParser (whiteSpace *> p <* eof) () filename s
 parse :: String -> (Either (SDecl STerm) STerm)
 parse s = case runP declOrTm s "" of
             Right t -> t
-            Left e -> error ("no parse: " ++ show s)
+            Left _ -> error ("no parse: " ++ show s)

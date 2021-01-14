@@ -1,5 +1,5 @@
-name:                compiler
-version:             0.1.5.0
+name:                compilerpcf
+version:             0.1.7.1
 github:              "TheCompileRS/CompilerPCF"
 license:             GPL-3
 author:              "Mauro Jaskelioff, Guido Martinez, Román Castellarin y Sebastián Zimmermann"
@@ -27,13 +27,17 @@ dependencies:
 - exceptions
 - hspec
 - QuickCheck
-
+- optparse-applicative
+- binary
+- bytestring
+- llvm-hs-pure
+- process
 
 library:
   source-dirs: src
 
 executables:
-  compiladores-exe:
+  compiler-exe:
     main:                Main.hs
     source-dirs:         app
     ghc-options:
@@ -46,10 +50,10 @@ executables:
     - -fwarn-name-shadowing
     - -fwarn-incomplete-patterns
     dependencies:
-    - compiladores
+    - compilerpcf
 
 tests:
-  compiladores-test:
+  compiler-test:
     main:                Spec.hs
     source-dirs:         test
     ghc-options:
@@ -57,4 +61,4 @@ tests:
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
-    - compiladores
+    - compilerpcf

@@ -49,6 +49,7 @@ openAll (Fix p f fty x xty t) =
     Fix p f' fty x' xty (openAll t')
 openAll (IfZ p c t e) = IfZ p (openAll c) (openAll t) (openAll e)
 openAll (UnaryOp i o t) = UnaryOp i o (openAll t)
+openAll (BinaryOp i o t1 t2) = BinaryOp i o (openAll t1) (openAll t2)
 
 -- | Pretty printer de nombres (Doc)
 name2doc :: Name -> Doc
@@ -75,6 +76,10 @@ unary2doc :: UnaryOp -> Doc
 unary2doc Succ = text "succ"
 unary2doc Pred = text "pred"
 
+binary2doc :: BinaryOp -> Doc
+binary2doc Plus = text "+"
+binary2doc Minus = text "-"
+
 collectApp :: NTerm -> (NTerm, [NTerm])
 collectApp t = go [] t where
   go ts (App _ h tt) = go (tt:ts) h
@@ -92,8 +97,8 @@ t2doc :: Bool     -- Debe ser un átomo?
       -> Doc
 -- Uncomment to use the Show instance for STerm
 {- t2doc at x = text (show x) -}
-t2doc at (V _ x) = text x
-t2doc at (Const _ c) = c2doc c
+t2doc _ (V _ x) = text x
+t2doc _ (Const _ c) = c2doc c
 t2doc at (Lam _ v ty t) =
   parenIf at $
   sep [sep [text "fun", parens (sep [name2doc v,text ":",ty2doc ty]), text "->"], nest 2 (t2doc False t)]
@@ -118,6 +123,10 @@ t2doc at (IfZ _ c t e) =
 t2doc at (UnaryOp _ o t) =
   parenIf at $
   unary2doc o <+> t2doc True t
+
+t2doc at (BinaryOp _ o t1 t2) =
+  parenIf at $
+  t2doc True t1 <+> binary2doc o <+> t2doc True t2
 
 binding2doc :: (Name, Ty) -> Doc
 binding2doc (x, ty) =
