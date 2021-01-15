@@ -7,14 +7,9 @@
     - Testing
     
 ## Questions:
-    - ~Se puede preconvertir de locally nameless a fully named y~
-        ~solo luego llamar a la funcion closureConvert ?~
-    - ~Por que es~
-        ~IrAccess IrTerm Int~
-     ~y no~
-        ~IrAccess Name Int~
-     ~??~
-    - ~freeVars?~
+    - Hace falta guardar la condicion en un registro? (ifZ)
+        - si no hace falta, impacta en la performance?
+        - hay que abrir un bloque nuevo para el ifz entry?
     
 
 ## Syntatic Sugar
