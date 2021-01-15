@@ -15,7 +15,7 @@ import Lang
 import MonadPCF
 
 import Control.Monad.Writer (runWriter, tell, Writer)
-import Subst (open)
+import Subst (openN, open)
 import Data.List (isPrefixOf)
 
 data IrTerm = IrVar Name
@@ -38,6 +38,10 @@ type ConvertMonad = StateT Int (Writer [IrDecl])
 makeTerm :: Name -> [Name] -> IrTerm -> IrTerm
 makeTerm cloName fv t = foldr f t (zip fv [1..])
   where f (v, i) b = IrLet v (IrAccess (IrVar cloName) i) b  
+
+makeTermR :: Name -> [Name] -> IrTerm -> IrTerm
+makeTermR cloName (f:fv) t = IrLet f (IrVar cloName) (makeTerm cloName fv t)
+makeTermR _ [] _ = error "second argument must not be empty"
 
 genName :: String -> ConvertMonad String
 genName s = do n <- get
@@ -65,7 +69,15 @@ closureConvert term = case term of
     BinaryOp _ op t1 t2 -> do t1' <- closureConvert t1
                               t2' <- closureConvert t2
                               return $ IrBinaryOp op t1' t2'
-    Fix {}              -> undefined
+    Fix _ f _ x _ t     -> do funName <- genName ""
+                              varName <- genName x
+                              cloName <- genName "clo"
+                              lamName <- genName f
+                              t' <- closureConvert (openN [lamName, varName] t)
+                              let fv = filter ("__" `isPrefixOf`) $ freeVars t
+                              let lets = makeTermR cloName (lamName:fv) t' 
+                              tell [IrFun funName 2 [cloName, varName] lets]
+                              return $ MkClosure funName (IrVar <$> fv)
     IfZ _ t1 t2 t3      -> do t1' <- closureConvert t1
                               t2' <- closureConvert t2
                               t3' <- closureConvert t3
