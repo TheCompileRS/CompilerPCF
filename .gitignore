@@ -11,6 +11,7 @@ app/Main
 *.log
 *.blg
 *.bbl
+*.ll
 compiladores.cabal
 compilerpcf.cabal
 compiler.cabal

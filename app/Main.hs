@@ -103,7 +103,7 @@ compileClosure file = do
     --printPCF $ intercalate "\n" $ show <$> runCC decls
     let irdecls = (codegen . runCanon. runCC) decls
     liftIO $ TIO.writeFile "output.ll" (ppllvm irdecls)
-    let commandline = "gcc -Wno-override-module output.ll src/runtime.c -lgc -o prog"
+    let commandline = "clang -Wno-override-module output.ll src/runtime.c -lgc -o prog"
     liftIO $ system commandline
     return ()
     
