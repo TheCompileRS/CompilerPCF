@@ -100,7 +100,7 @@ compileClosure file = do
                          return "")
     sdecls <- parseIO filename program x
     decls <- catMaybes <$> mapM elabDecl sdecls 
-    --printPCF $ intercalate "\n" $ show <$> runCC decls
+    printPCF $ intercalate "\n" $ show <$> runCC decls
     let irdecls = (codegen . runCanon. runCC) decls
     liftIO $ TIO.writeFile "output.ll" (ppllvm irdecls)
     let commandline = "clang -Wno-override-module output.ll src/runtime.c -lgc -o prog"

@@ -10,7 +10,7 @@
     - Hace falta guardar la condicion en un registro? (ifZ)
         - si no hace falta, impacta en la performance?
         - hay que abrir un bloque nuevo para el ifz entry?
-    
+    - Cual es el problema por el cual tenemos undefined reference a las closures?
 
 ## Syntatic Sugar
 	- ~Parse PCF1 terms~
@@ -60,3 +60,6 @@
 ## LLVM
     - Make CanonConv
     - Add OpenBlock and CloseBlock helpers
+    - Note: if the source program is blank, it shouldn't parse 
+        (or else pcf_main won't have irVals to translate)
+    - FIX: DOUBLE TRANSLATE FOR IRFUN IN PCFMAIN

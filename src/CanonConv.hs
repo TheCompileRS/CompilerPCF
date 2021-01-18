@@ -1,3 +1,5 @@
+{-# LANGUAGE LambdaCase #-}
+
 module CanonConv where
 
 
@@ -9,14 +11,59 @@ import Lang ( Const(CNat) )
 
 -- ----------------------------------------------------
 
+
+pcfMain :: [IrDecl] -> CanonM ()
+pcfMain decls = do   openBlock "pcfmain"
+                     val <- process decls
+                     closeBlock $ Return val
+    where process (d:ds) = do
+            case d of
+                -- WARNING: ORIGINALLY THIS FUNCTION TOOK ONLY IRVALS
+                IrFun{} -> do
+                    t <- translate $ irDeclBody d
+                    makeInst $ Store (irDeclName d) $ V t
+                    if null ds then return (C 0) else process ds
+                IrVal{} -> do
+                    t <- translate $ irDeclDef d
+                    makeInst $ Store (irDeclName d) $ V t
+                    if null ds then return t else process ds
+            
+          process [] = undefined 
+
+
+{-
 runCanon :: [IrDecl] -> CanonProg
-runCanon decls = CanonProg (convertDecl <$> decls)  
- where convertDecl d = case d of
-        IrVal{} -> Right $ irDeclName d
-        IrFun{} ->  Left ( irDeclName d,
-                          irDeclArgNames d,
-                          snd blocks )
-        where blocks = runWriter (runStateT (translate $ irDeclBody d) (0, "", []))
+runCanon decls = CanonProg $ canon_funs ++ canon_vals ++ [canon_main]
+ where 
+        vals = filter (\case IrVal{} -> True; _ -> False) decls
+        funs = filter (\case IrFun{} -> True; _ -> False) decls
+        
+        canon_vals = Right . irDeclName  <$> vals
+        canon_funs = convertFuns <$> funs
+        canon_main = Left ("pcfmain", [], canon_main_blocks )
+
+        start_state = (0, "", [])
+        canon_main_blocks = snd . runWriter $ runStateT (pcfMain vals) start_state
+        convertFuns d = Left (irDeclName d, irDeclArgNames d, blocks)
+         where blocks = snd . runWriter $ runStateT (translate $ irDeclBody d) start_state
+-}
+
+runCanon :: [IrDecl] -> CanonProg
+runCanon decls = CanonProg $ canon_funs ++ canon_vals ++ [canon_main]
+ where 
+        vals = filter (\case IrVal{} -> True; _ -> False) decls
+        funs = filter (\case IrFun{} -> True; _ -> False) decls
+        
+        canon_vals = Right . irDeclName  <$> vals
+        canon_funs = snd doFuns
+        canon_main = Left ("pcfmain", [], canon_main_blocks )
+
+        start_state = (0, "", [])
+        canon_main_blocks = snd . runWriter $ runStateT (pcfMain (funs++vals)) (fst doFuns)
+   
+        doFuns = foldr f (start_state, []) funs
+            where f irf (s, cfuns) = let ((_, s'), b)  = runWriter $ runStateT (translate $ irDeclBody irf) s
+                                     in (s', Left (irDeclName irf, irDeclArgNames irf, b):cfuns)
 
 type CanonRes = Either CanonFun CanonVal
 
