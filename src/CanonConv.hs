@@ -17,17 +17,9 @@ pcfMain decls = do   openBlock "pcfmain"
                      val <- process decls
                      closeBlock $ Return val
     where process (d:ds) = do
-            case d of
-                -- WARNING: ORIGINALLY THIS FUNCTION TOOK ONLY IRVALS
-                IrFun{} -> do
-                    t <- translate $ irDeclBody d
-                    makeInst $ Store (irDeclName d) $ V t
-                    if null ds then return (C 0) else process ds
-                IrVal{} -> do
                     t <- translate $ irDeclDef d
                     makeInst $ Store (irDeclName d) $ V t
                     if null ds then return t else process ds
-            
           process [] = undefined 
 
 
@@ -59,11 +51,17 @@ runCanon decls = CanonProg $ canon_funs ++ canon_vals ++ [canon_main]
         canon_main = Left ("pcfmain", [], canon_main_blocks )
 
         start_state = (0, "", [])
-        canon_main_blocks = snd . runWriter $ runStateT (pcfMain (funs++vals)) (fst doFuns)
+        canon_main_blocks = snd . runWriter $ runStateT (pcfMain vals) (fst doFuns)
    
         doFuns = foldr f (start_state, []) funs
-            where f irf (s, cfuns) = let ((_, s'), b)  = runWriter $ runStateT (translate $ irDeclBody irf) s
-                                     in (s', Left (irDeclName irf, irDeclArgNames irf, b):cfuns)
+            where f (IrFun name _ args body) (state, cfuns) = 
+                    let ((_, state'), b)  = runWriter $ runStateT funframe state
+                    in (state', Left (name, args, b):cfuns)
+                    where funframe = do 
+                            openBlock name
+                            t <- translate body
+                            closeBlock $ Return t
+
 
 type CanonRes = Either CanonFun CanonVal
 
@@ -152,22 +150,22 @@ translate term = case term of
 
       -- caso then
       openBlock loc_then
-      --r_then <- getNew
+      r_then <- getNew
       v2 <- translate t2
-      --makeInst $ Assign r_then $ V v2
+      makeInst $ Assign r_then $ V v2
       closeBlock $ Jump loc_cont
 
       -- caso else
       openBlock loc_else
-      --r_else <- getNew
+      r_else <- getNew
       v3 <- translate t3
-      --makeInst $ Assign r_else $ V v3
+      makeInst $ Assign r_else $ V v3
       closeBlock $ Jump loc_cont
 
       -- wrap up
       openBlock loc_cont
       r_cont <- getNew
-      makeInst $ Assign r_cont $ Phi [(loc_then, v2), (loc_else, v3)]
+      makeInst $ Assign r_cont $ Phi [(loc_then, R r_then), (loc_else, R r_else)]
 
       return $ R r_cont
 
