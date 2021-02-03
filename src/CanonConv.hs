@@ -8,6 +8,7 @@ import ClosureConv
 import Control.Monad.State (MonadState(get), modify, StateT(runStateT))
 import Control.Monad.Writer (runWriter, MonadWriter(tell), Writer)
 import Lang ( Const(CNat) )
+import Data.List (isPrefixOf)
 
 -- ----------------------------------------------------
 
@@ -20,7 +21,7 @@ pcfMain decls = do   openBlock "pcfmain"
                     t <- translate $ irDeclDef d
                     makeInst $ Store (irDeclName d) $ V t
                     if null ds then return t else process ds
-          process [] = undefined 
+          process [] = undefined
 
 
 {-
@@ -42,22 +43,22 @@ runCanon decls = CanonProg $ canon_funs ++ canon_vals ++ [canon_main]
 
 runCanon :: [IrDecl] -> CanonProg
 runCanon decls = CanonProg $ canon_funs ++ canon_vals ++ [canon_main]
- where 
+ where
         vals = filter (\case IrVal{} -> True; _ -> False) decls
         funs = filter (\case IrFun{} -> True; _ -> False) decls
-        
+
         canon_vals = Right . irDeclName  <$> vals
         canon_funs = snd doFuns
         canon_main = Left ("pcfmain", [], canon_main_blocks )
 
         start_state = (0, "", [])
         canon_main_blocks = snd . runWriter $ runStateT (pcfMain vals) (fst doFuns)
-   
+
         doFuns = foldr f (start_state, []) funs
-            where f (IrFun name _ args body) (state, cfuns) = 
+            where f (IrFun name _ args body) (state, cfuns) =
                     let ((_, state'), b)  = runWriter $ runStateT funframe state
                     in (state', Left (name, args, b):cfuns)
-                    where funframe = do 
+                    where funframe = do
                             openBlock name
                             t <- translate body
                             closeBlock $ Return t
@@ -100,7 +101,10 @@ closeBlock t = do   (_, l, s) <- get
 
 translate :: IrTerm -> CanonM Val
 translate term = case term of
-  IrVar x           -> return $ G x 
+  IrVar x           -> do
+      if "__" `isPrefixOf` x
+          then return $ R (Temp x)
+          else return $ G x
   IrConst (CNat x)  -> return $ C x
   IrBinaryOp op t1 t2 -> do
       r1 <- getNew
@@ -113,22 +117,20 @@ translate term = case term of
       makeInst $ Assign r3 $ BinOp op (R r1) (R r2)
       return $ R r3
   IrLet x t1 t2 -> do
-      r <- getNew
       v1 <- translate t1
-      makeInst $ Store x $ V v1
-      v2 <- translate t2
-      makeInst $ Assign r $ V v2
-      return $ R r
+      makeInst $ Assign (Temp x) $ V v1
+      translate t2
   IrCall f fs -> do
       r <- getNew
       vf <- translate f
-      vfs <- mapM translate fs 
+      vfs <- mapM translate fs
       makeInst $ Assign r $ Call vf vfs
       return $ R r
   ClosureConv.MkClosure x ts -> do
       r <- getNew
       vs <- mapM translate ts
       makeInst $ Assign r $ CIR.MkClosure x vs
+      --makeInst $ Store x $ V $ R r
       return $ R r
   IrAccess t n -> do
       r <- getNew
@@ -141,11 +143,11 @@ translate term = case term of
       loc_else  <- getLoc "else"
       loc_cont  <- getLoc "cont"
 
-      
+
       --r_cond <- getNew
       v1 <- translate t1
       --makeInst $ Assign r_cond $ V v1
-      
+
       closeBlock $ CondJump (Eq v1 (C 0)) loc_then loc_else
 
       -- caso then
