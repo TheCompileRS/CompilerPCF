@@ -31,6 +31,8 @@ dependencies:
 - binary
 - bytestring
 - llvm-hs-pure
+- llvm-hs-pretty
+- text
 - process
 
 library:

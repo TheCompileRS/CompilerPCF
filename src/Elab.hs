@@ -72,10 +72,13 @@ desugarTerm term = case term of
     BV i x               -> V i x
     BConst i v           -> Const i v
     BApp i t1 t2         -> App i (desugarTerm t1) (desugarTerm t2)
-    BUnaryOp i op t      -> UnaryOp i op (desugarTerm t)
+    BUnaryOp i op t      -> desugarUnary i op (desugarTerm t)
     BBinaryOp i op t1 t2 -> BinaryOp i op (desugarTerm t1) (desugarTerm t2)
     BIfZ i t1 t2 t3      -> IfZ i (desugarTerm t1) (desugarTerm t2) (desugarTerm t3)
-
+  where desugarUnary i op t = case op of
+            Succ  -> BinaryOp i Plus  t (Const i (CNat 1))
+            Pred  -> BinaryOp i Minus t (Const i (CNat 1))
+            --op    -> UnaryOp i op t
 
 -- | 'resolveTypesTerm' quita el azucar sintáctico de los términos
 resolveTypesTerm :: MonadPCF m => Tm info STy var -> m (Tm info Ty var)

@@ -37,6 +37,12 @@ import CEK (search, valToTerm)
 import Options.Applicative
 import Bytecompile (runBC, bcRead, bcWrite, bytecompileModule)
 import ClosureConv (runCC)
+import CanonConv (runCanon)
+import InstSel (codegen)
+import System.Process (system)
+
+import LLVM.Pretty
+import qualified Data.Text.Lazy.IO as TIO
 
 data Mode = Interactive
           | Typecheck
@@ -94,7 +100,15 @@ compileClosure file = do
                          return "")
     sdecls <- parseIO filename program x
     decls <- catMaybes <$> mapM elabDecl sdecls 
-    printPCF $ intercalate "\n" $ show <$> runCC decls
+    printPCF $ ("\nCLOSURE CONVERSIONS\n" ++) $ intercalate "\n" $ show <$> runCC decls
+    let canonprog = runCanon. runCC $ decls
+    printPCF $ "\nCANONIZED PROGRAM\n" ++ show canonprog
+    let irdecls = (codegen . runCanon. runCC) decls
+    liftIO $ TIO.writeFile "output.ll" (ppllvm irdecls)
+    let commandline = "clang -Wno-override-module output.ll src/runtime.c -lgc -o prog"
+    liftIO $ system commandline
+    return ()
+    
 
 bcRunFile :: MonadPCF m => String -> m ()
 bcRunFile filename = do
@@ -289,3 +303,5 @@ typeCheckPhrase x = do
          s <- get
          ty <- tc tt (tyEnv s)
          printPCF (ppTy ty)
+
+-- --------------------------
