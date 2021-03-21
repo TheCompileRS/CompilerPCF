@@ -13,8 +13,8 @@ import Data.String
 import Control.Monad.Writer
 import Control.Monad.State
 import qualified Lang
---import Common
 
+import GHC.Word ( Word32 )
 import LLVM.AST
 import LLVM.AST.Global
 import qualified LLVM.AST.AddrSpace
@@ -27,8 +27,12 @@ import qualified LLVM.AST.IntegerPredicate as IP
 i1 :: Type
 i1 = IntegerType 1
 
+-- Tamaño de una palabra de la máquina, en bits
+width :: GHC.Word.Word32
+width = 64
+
 integer :: Type
-integer = IntegerType 32
+integer = IntegerType width
 
 ptr :: Type
 ptr = PointerType integer (LLVM.AST.AddrSpace.AddrSpace 0)
@@ -142,7 +146,7 @@ cgInst (CIR.Store nm e) = do
                             Nothing 0 []]
 
 cint :: Integral a => a -> Operand
-cint i = ConstantOperand $ C.Int 32 (fromIntegral i)
+cint i = ConstantOperand $ C.Int width (fromIntegral i)
 
 zero :: Operand
 zero = cint 0
@@ -172,16 +176,21 @@ cgExpr (BinOp Lang.Minus v1 v2) = do
   vf1 <- freshName
   vf2 <- freshName
   r <- freshName
+  r' <- freshName
+  r'64 <- freshName
+  r'' <- freshName
   tell [vf1 := PtrToInt v1 integer []]
   tell [vf2 := PtrToInt v2 integer []]
   tell [r := Sub False False
                (LocalReference integer vf1)
                (LocalReference integer vf2)
                []]
-  return (IntToPtr (LocalReference integer r) ptr [])
+  tell [r' := ICmp IP.SLT (cint 0) (LocalReference integer r) []]
+  tell [r'64 := ZExt (LocalReference i1 r') integer []]
+  tell [r'' := Mul False False (LocalReference integer r)
+                               (LocalReference integer r'64) []]
+  return (IntToPtr (LocalReference integer r'') ptr [])
 
--- TODO: add Multiplication as a binary op.
---
 -- cgExpr (BinOp Lang.Prod v1 v2) = do
 --   v1 <- cgV v1
 --   v2 <- cgV v2
@@ -202,8 +211,6 @@ cgExpr (UnOp Lang.Succ v) = do
 cgExpr (UnOp Lang.Pred v) = do
   cgExpr (BinOp Lang.Minus v (C 1)) -- trucho
 
--- TODO: Add Print as a unary operator
--- 
 -- cgExpr (UnOp Lang.Print v) = do
 --   v <- cgV v
 --   vf <- freshName
@@ -266,7 +273,6 @@ cgExpr (Access v idx) = do
   tell [
     r := BitCast v ptrptr [],
     tmp := GetElementPtr False (LocalReference ptrptr r) [cint idx] []
-    -- esto debe estar mal porque es un i32* ?
    ]
   return $ Load False (LocalReference ptrptr tmp) Nothing 0 []
 

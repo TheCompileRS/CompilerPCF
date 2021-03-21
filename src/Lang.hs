@@ -19,6 +19,7 @@ Definiciones de distintos tipos de datos:
 module Lang where
 
 import Common ( Pos )
+import Data.List (nub)
 
 type Name = String
 
@@ -114,14 +115,17 @@ getInfo (Fix i _ _ _ _ _) = i
 getInfo (IfZ i _ _ _) = i
 
 -- | Obtiene las variables libres de un término.
-freeVars :: Tm info ty Var -> [Name]
-freeVars (V _ (Free v))        = [v]
-freeVars (V _ _)               = []
-freeVars (Lam _ _ _ t)         = freeVars t
-freeVars (App _ l r)           = freeVars l ++ freeVars r
-freeVars (UnaryOp _ _ t)       = freeVars t
-freeVars (BinaryOp _ _ t1 t2)  = freeVars t1 ++ freeVars t2
-freeVars (Let _ _ _ t1 t2)     = freeVars t1 ++ freeVars t2
-freeVars (Fix _ _ _ _ _ t)     = freeVars t
-freeVars (IfZ _ c t e)         = freeVars c ++ freeVars t ++ freeVars e
-freeVars (Const _ _)           = []
+
+freeVars  :: Tm info ty Var -> [Name]
+freeVars t = nub $ freeVars' t
+  where 
+    freeVars'  (V _ (Free v))        = [v]
+    freeVars'  (V _ _)               = []
+    freeVars'  (Lam _ _ _ t)         = freeVars' t
+    freeVars'  (App _ l r)           = freeVars' l ++ freeVars' r
+    freeVars'  (UnaryOp _ _ t)       = freeVars' t
+    freeVars'  (BinaryOp _ _ t1 t2)  = freeVars' t1 ++ freeVars' t2
+    freeVars'  (Let _ _ _ t1 t2)     = freeVars' t1 ++ freeVars' t2
+    freeVars'  (Fix _ _ _ _ _ t)     = freeVars' t
+    freeVars'  (IfZ _ c t e)         = freeVars' c ++ freeVars' t ++ freeVars' e
+    freeVars'  (Const _ _)           = []
