@@ -5,8 +5,8 @@
 #include <inttypes.h>
 #include <gc.h>
 
-uint32_t pcf_print(uint32_t x) {
-	printf("%" PRIu32 "\n", x);
+uint64_t pcf_print(uint64_t x) {
+	printf("%" PRIu64 "\n", x);
 	return x;
 }
 
@@ -35,5 +35,6 @@ extern uint64_t* pcfmain(void);
 int main (int argc, char **argv) {
 	uint64_t* rp = pcfmain();
 	uint64_t r = (uint64_t)rp;
+	pcf_print(r);
 	return r;
 }
