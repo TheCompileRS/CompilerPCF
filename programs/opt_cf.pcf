@@ -1,0 +1,2 @@
+let x : Nat = 5
+let ans : Nat = 1 + 5 - 20 + 3 + (x+0)
