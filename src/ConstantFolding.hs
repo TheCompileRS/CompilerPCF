@@ -1,6 +1,6 @@
 {-# LANGUAGE PatternSynonyms #-}
 {-|
-Module      : Lang
+Module      : ConstantFolding
 Description : Optimizacion de ConstantFolding
 Copyright   : (c) Roman Castellarin 2020.
 License     : GPL-3
@@ -32,8 +32,11 @@ cFold term = case term of
     App i t1 t2             -> App i (cFold t1) (cFold t2)
     BinaryOp i ty t1 t2     -> solve $ BinaryOp i ty (cFold t1) (cFold t2)
     Fix i f ft x xt t       -> Fix i f ft x xt (cFold t)
-    IfZ i t1 t2 t3          -> IfZ i (cFold t1) (cFold t2) (cFold t3)
     Let i x xt t1 t2        -> Let i x xt (cFold t1) (cFold t2)
+    IfZ i t1 t2 t3          -> case cFold t1 of 
+                                    CONST 0 -> cFold t2
+                                    CONST _ -> cFold t3
+                                    c -> IfZ i c (cFold t2) (cFold t3)
     t -> t
 
 optimize :: [Decl Ty Term] -> [Decl Ty Term]
