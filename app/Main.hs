@@ -100,12 +100,13 @@ compileClosure file = do
                          hPutStr stderr ("No se pudo abrir el archivo " ++ filename ++ ": " ++ err ++"\n")
                          return "")
     sdecls <- parseIO filename program x
+    mapM_ handleDecl sdecls -- type checking
     decls' <- catMaybes <$> mapM elabDecl sdecls 
     let decls = ConstantFolding.optimize decls'
     printPCF $ ("\nCLOSURE CONVERSIONS\n" ++) $ intercalate "\n" $ show <$> runCC decls
     let canonprog = runCanon. runCC $ decls
     printPCF $ "\nCANONIZED PROGRAM\n" ++ show canonprog
-    let irdecls = (codegen . runCanon. runCC) decls
+    let irdecls = codegen canonprog
     liftIO $ TIO.writeFile "output.ll" (ppllvm irdecls)
     let commandline = "clang -Wno-override-module output.ll src/runtime.c -lgc -o prog"
     liftIO $ system commandline
@@ -192,9 +193,10 @@ handleDecl decl = do
     Nothing -> return ()
     Just (Decl p x ty tt) -> do
         tcDecl (Decl p x ty tt)
+        -- para que simplificabamos esto antes??
         --te <- eval tt
-        te <- liftM valToTerm $ search tt [] []
-        addDecl (Decl p x ty te)
+        --te <- liftM valToTerm $ search tt [] []
+        addDecl (Decl p x ty tt)
 
 data Command = Compile CompileForm
              | Print String
