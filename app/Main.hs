@@ -99,6 +99,7 @@ compileClosure file = do
                          hPutStr stderr ("No se pudo abrir el archivo " ++ filename ++ ": " ++ err ++"\n")
                          return "")
     sdecls <- parseIO filename program x
+    mapM_ handleDecl sdecls -- type checking
     decls <- catMaybes <$> mapM elabDecl sdecls 
     printPCF $ ("\nCLOSURE CONVERSIONS\n" ++) $ intercalate "\n" $ show <$> runCC decls
     let canonprog = runCanon. runCC $ decls
@@ -190,9 +191,10 @@ handleDecl decl = do
     Nothing -> return ()
     Just (Decl p x ty tt) -> do
         tcDecl (Decl p x ty tt)
+        -- para que simplificabamos esto antes??
         --te <- eval tt
-        te <- liftM valToTerm $ search tt [] []
-        addDecl (Decl p x ty te)
+        --te <- liftM valToTerm $ search tt [] []
+        addDecl (Decl p x ty tt)
 
 data Command = Compile CompileForm
              | Print String
