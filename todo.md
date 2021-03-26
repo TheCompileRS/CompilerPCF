@@ -1,3 +1,5 @@
+# FIX
+    - main should show parse errors
 # Compiler
 	- Syntactic Sugar
 	- ~Abstract Machines~

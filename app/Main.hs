@@ -43,6 +43,7 @@ import System.Process (system)
 
 import LLVM.Pretty
 import qualified Data.Text.Lazy.IO as TIO
+import qualified ConstantFolding (optimize)
 
 data Mode = Interactive
           | Typecheck
@@ -100,7 +101,8 @@ compileClosure file = do
                          return "")
     sdecls <- parseIO filename program x
     mapM_ handleDecl sdecls -- type checking
-    decls <- catMaybes <$> mapM elabDecl sdecls 
+    decls' <- catMaybes <$> mapM elabDecl sdecls 
+    let decls = ConstantFolding.optimize decls'
     printPCF $ ("\nCLOSURE CONVERSIONS\n" ++) $ intercalate "\n" $ show <$> runCC decls
     let canonprog = runCanon. runCC $ decls
     printPCF $ "\nCANONIZED PROGRAM\n" ++ show canonprog
