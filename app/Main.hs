@@ -43,7 +43,8 @@ import System.Process (system)
 
 import LLVM.Pretty
 import qualified Data.Text.Lazy.IO as TIO
-import qualified DeadCode --(optimize)
+import qualified DeadCode (optimize)
+import qualified ConstantFolding (optimize)
 
 data Mode = Interactive
           | Typecheck
@@ -100,13 +101,13 @@ compileClosure file = do
                          hPutStr stderr ("No se pudo abrir el archivo " ++ filename ++ ": " ++ err ++"\n")
                          return "")
     sdecls <- parseIO filename program x
-    decls' <- catMaybes <$> mapM elabDecl sdecls
-    let decls = DeadCode.optimize decls'
-    --printPCF $ "KEEP ONLY\n" ++ intercalate "\n" (show <$> decls)
+    mapM_ handleDecl sdecls -- type checking
+    decls' <- catMaybes <$> mapM elabDecl sdecls 
+    let decls = (DeadCode.optimize . ConstantFolding.optimize) decls'
     printPCF $ ("\nCLOSURE CONVERSIONS\n" ++) $ intercalate "\n" $ show <$> runCC decls
     let canonprog = runCanon. runCC $ decls
     printPCF $ "\nCANONIZED PROGRAM\n" ++ show canonprog
-    let irdecls = (codegen . runCanon. runCC) decls
+    let irdecls = codegen canonprog
     liftIO $ TIO.writeFile "output.ll" (ppllvm irdecls)
     let commandline = "clang -Wno-override-module output.ll src/runtime.c -lgc -o prog"
     liftIO $ system commandline
@@ -193,9 +194,10 @@ handleDecl decl = do
     Nothing -> return ()
     Just (Decl p x ty tt) -> do
         tcDecl (Decl p x ty tt)
+        -- para que simplificabamos esto antes??
         --te <- eval tt
-        te <- liftM valToTerm $ search tt [] []
-        addDecl (Decl p x ty te)
+        --te <- liftM valToTerm $ search tt [] []
+        addDecl (Decl p x ty tt)
 
 data Command = Compile CompileForm
              | Print String
