@@ -103,7 +103,7 @@ compileClosure file = do
     printPCF $ ("\nCLOSURE CONVERSIONS\n" ++) $ intercalate "\n" $ show <$> runCC decls
     let canonprog = runCanon. runCC $ decls
     printPCF $ "\nCANONIZED PROGRAM\n" ++ show canonprog
-    let irdecls = (codegen . runCanon. runCC) decls
+    let irdecls = codegen canonprog
     liftIO $ TIO.writeFile "output.ll" (ppllvm irdecls)
     let commandline = "clang -Wno-override-module output.ll src/runtime.c -lgc -o prog"
     liftIO $ system commandline
