@@ -1,0 +1,4 @@
+let const : Nat = 5
+let f : Nat -> Nat = succ
+let ans : Nat = f const
+let ans2 : Nat = (fun (x: Nat) -> x + x) ans
