@@ -1,4 +1,12 @@
-let const : Nat = 5
-let f : Nat -> Nat = succ
-let ans : Nat = f const
-let ans2 : Nat = (fun (x: Nat) -> x + x) ans
+# let const : Nat = 5
+# let f : Nat -> Nat = succ
+# let ans : Nat = f const
+# let ans2 : Nat = (fun (x: Nat) -> x + x) ans
+# let ans3 : Nat = let x : Nat = 5 
+#                  in (fun (y: Nat) -> x + y) const
+# let ans4 : Nat = let rec f (x : Nat) : Nat = x + 100 + const
+#                  in f (f 2)
+
+let rec sumatoria (x: Nat) : Nat = ifz x then 0 else x + sumatoria (x-1)
+
+let ans : Nat = sumatoria 10

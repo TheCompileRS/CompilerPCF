@@ -104,7 +104,11 @@ compileClosure file = do
     sdecls <- parseIO filename program x
     mapM_ handleDecl sdecls -- type checking
     decls' <- catMaybes <$> mapM elabDecl sdecls 
-    let decls = (InlineExpansion.optimize . DeadCode.optimize . ConstantFolding.optimize) decls'
+    printPCF $ ("\nORIGINALLY\n" ++) $ intercalate "\n" $ show <$> decls'
+    -- HACEMOS N=20 RONDAS AHRE
+    let optimizer = InlineExpansion.optimize . DeadCode.optimize . ConstantFolding.optimize
+    let decls = iterate optimizer decls' !! 20
+    printPCF $ ("\nOPTIMIZED\n" ++) $ intercalate "\n" $ show <$> decls
     printPCF $ ("\nCLOSURE CONVERSIONS\n" ++) $ intercalate "\n" $ show <$> runCC decls
     let canonprog = runCanon. runCC $ decls
     printPCF $ "\nCANONIZED PROGRAM\n" ++ show canonprog
