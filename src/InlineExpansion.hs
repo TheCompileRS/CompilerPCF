@@ -11,9 +11,6 @@ module InlineExpansion (optimize) where
 
 import Lang
 import Subst (subst, close, open, openN, closeN, substN)
-import Debug.Trace (trace)
-import Common (Pos(NoPos))
---import Debug.Trace (trace)
 
 type Program = [Decl Ty Term]
 
@@ -26,8 +23,6 @@ pattern LAM t <- Lam i f ty t
 pattern FIX :: Tm info ty var -> Tm info ty var
 pattern FIX t <- Fix i f ft x xt t
 
--- TODO: is this correct? let e be locally nameless,
--- if x is free in e, e[t/x] == subst t (close x e)
 expDecls :: Decl ty Term -> Program -> Program
 --expDecls def _ | trace ("expanding " ++ declName def ++ "\n") False = undefined 
 expDecls def prog = fmap (subst (declBody def) . close (declName def)) <$> prog
@@ -42,10 +37,6 @@ size term = 1 + case term of
     Let _ _ _ t1 t2    -> size t1 + size t2
     IfZ _ t1 t2 t3     -> size t1 + size t2 + size t3
     t -> 0
-
--- aux :: Term -> Int
--- aux d = let s = size d
---         in trace ("size (" ++ show s ++ ") " ++ show d ++ "\n") s
 
 expShortDefs :: Program -> Program
 expShortDefs prog = foldr process prog prog
@@ -71,7 +62,6 @@ solve term = case term of
     t -> t
 
 -- TODO: change function name
--- TODO: open / close names !!
 cFold :: Term -> Term
 cFold term = case term of
     Lam i x xt t            -> Lam i x xt (close x $ cFold (open x t))
@@ -84,21 +74,3 @@ cFold term = case term of
 
 optimize :: Program -> Program
 optimize = map (fmap cFold) . expShortDefs
-
--- DEBUGGING PURPOSES
-x0 :: Term
-x0 = App NoPos (Lam NoPos "x" NatTy 
-                    (Lam NoPos "y" NatTy 
-                        (BinaryOp NoPos Plus 
-                            (BinaryOp NoPos Plus (V NoPos (Bound 1)) 
-                            (V NoPos (Bound 1))) (V NoPos (Bound 0))))) 
-                        (BinaryOp NoPos Plus (V NoPos (Free "const")) 
-                    (Const NoPos (CNat 3)))
-
-x1 :: Term
-x1 = (Lam NoPos "y" NatTy 
-            (BinaryOp NoPos Plus 
-                (V NoPos (Free "x")) 
-                (V NoPos (Bound 0)))) 
-        
-x3 = (Const NoPos (CNat 3))
