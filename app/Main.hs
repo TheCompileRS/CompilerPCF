@@ -16,12 +16,10 @@ import System.Console.Haskeline ( defaultSettings, getInputLine, runInputT, Inpu
 import Control.Monad.Catch (MonadMask)
 import Data.Maybe ( catMaybes )
 
---import Control.Monad
 import Control.Monad.Trans
 import Data.List (intercalate, nub,  intersperse, isPrefixOf )
 import Data.Char ( isSpace )
 import Control.Exception ( catch , IOException )
---import System.Environment ( getArgs )
 import System.IO ( stderr, hPutStr )
 
 import Global ( GlEnv(..) )
@@ -29,7 +27,6 @@ import Errors
 import Lang
 import Parse ( P, tm, program, declOrTm, runP )
 import Elab ( elab, elabDecl )
---import Eval ( eval )
 import PPrint ( pp , ppTy )
 import MonadPCF
 import TypeChecker ( tc, tcDecl )
@@ -199,11 +196,9 @@ handleDecl decl = do
     Nothing -> return ()
     Just (Decl p x ty tt) -> do
         tcDecl (Decl p x ty tt)
-        -- para que simplificabamos esto antes??
-        --te <- eval tt
-        --te <- liftM valToTerm $ search tt [] []
         addDecl (Decl p x ty tt)
 
+-- | Comandos del modo interprete
 data Command = Compile CompileForm
              | Print String
              | Type String
