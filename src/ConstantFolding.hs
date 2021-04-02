@@ -10,13 +10,11 @@ Stability   : experimental
 module ConstantFolding (optimize) where
 
 import Lang
---import Debug.Trace (trace)
 
 pattern CONST :: Int -> Tm info ty var
 pattern CONST n <- Const i (CNat n)
 
 solve :: Term -> Term
--- solve term | trace (show term) False = undefined 
 solve term = case term of
     BinaryOp i Plus     t1          (CONST 0)   -> t1
     BinaryOp i Plus     (CONST 0)   t2          -> t2
