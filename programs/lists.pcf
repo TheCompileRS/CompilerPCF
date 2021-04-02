@@ -1,0 +1,30 @@
+# TIPO LISTA (1-indexed, en 0 esta la longitud)
+type List = Nat -> Nat
+
+# CONSTRUCTORES
+let nil: List = fun (n: Nat) -> 0
+
+let cons (x: Nat) (xs: List): List = fun (n: Nat) ->
+    ifz n then 1 + xs 0 
+          else ifz n-1 then x 
+                       else xs (n-1)
+
+# DESTRUCTORES
+let head (xs: List): Nat = xs 1
+
+let tail (xs: List): List = fun (n: Nat) ->
+    ifz n then xs 0 - 1 
+          else xs (n+1) 
+
+# MAP
+let map (f: Nat -> Nat) (l: List): List = fun (n: Nat) ->
+    ifz n then l 0 else f (l n)
+
+# FOLDR
+let rec foldr (f: Nat -> Nat -> Nat) (e: Nat) (l: List): Nat =
+    ifz l 0 then e else f (head l) (foldr f e (tail l))
+
+# EXAMPLE
+let l: List = cons 10 (cons 20 (cons 30 (cons 40 (cons 50 nil)))) 
+
+let length: Nat = foldr (fun (x y: Nat) -> x + y) 100 (map succ (tail l))

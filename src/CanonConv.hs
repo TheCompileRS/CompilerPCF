@@ -88,6 +88,10 @@ getLoc s = do (nloc, _, _) <- get
               modify $ \(n, l, w) -> (n+1, l, w)
               return $ s ++ show nloc
 
+getCurrentLoc :: CanonM Loc
+getCurrentLoc = do (_, l, _) <- get
+                   return l
+
 makeInst :: Inst -> CanonM ()
 makeInst ins = modify $ \(n, l, s) -> (n, l, s++[ins])
 
@@ -155,6 +159,7 @@ translate term = case term of
       r_then <- getNew
       v2 <- translate t2
       makeInst $ Assign r_then $ V v2
+      loc_then_end <- getCurrentLoc
       closeBlock $ Jump loc_cont
 
       -- caso else
@@ -162,12 +167,13 @@ translate term = case term of
       r_else <- getNew
       v3 <- translate t3
       makeInst $ Assign r_else $ V v3
+      loc_else_end <- getCurrentLoc
       closeBlock $ Jump loc_cont
 
       -- wrap up
       openBlock loc_cont
       r_cont <- getNew
-      makeInst $ Assign r_cont $ Phi [(loc_then, R r_then), (loc_else, R r_else)]
+      makeInst $ Assign r_cont $ Phi [(loc_then_end, R r_then), (loc_else_end, R r_else)]
 
       return $ R r_cont
 
