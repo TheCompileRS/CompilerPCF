@@ -1,7 +1,7 @@
 {-# LANGUAGE PatternSynonyms #-}
 {-|
 Module      : InlineExpansion
-Description : Optimizacion de InlineExpansion
+Description : Optimizacion de inline expansion
 Copyright   : (c) Roman Castellarin, Sebastián Zimmermann 2021.
 License     : GPL-3
 Stability   : experimental
@@ -24,11 +24,9 @@ pattern FIX :: Tm info ty var -> Tm info ty var
 pattern FIX t <- Fix i f ft x xt t
 
 expDecls :: Decl ty Term -> Program -> Program
---expDecls def _ | trace ("expanding " ++ declName def ++ "\n") False = undefined 
 expDecls def prog = fmap (subst (declBody def) . close (declName def)) <$> prog
 
 size :: Term -> Int 
---size term | trace ("size " ++ show term ++ "\n") False = undefined 
 size term = 1 + case term of
     Lam _ _ _ t        -> size t
     App _ t1 t2        -> size t1 + size t2
@@ -45,11 +43,7 @@ expShortDefs prog = foldr process prog prog
 
 
 
--- TODO: when should I call recursively the optimization??
---       could this ever end up in an infinite loop?
-
 solve :: Term -> Term
---solve term | trace ("solve " ++ show term ++ "\n") False = undefined 
 solve term = case term of
     App _ (LAM t) c@CONST{}    -> subst c t
     App _ (LAM t) v@V{}        -> subst v t
@@ -57,11 +51,8 @@ solve term = case term of
     App _ l@(FIX t) v@V{}      -> substN [l, v] t
     Let _ x _ c@CONST{} t      -> subst c t
     Let _ x _ v@V{}     t      -> subst v t
-    -- PCF is eager, is this worth optimizing?
-    -- App i (Lam _ x xt t1) t2 -> Let i x xt t2 t1
     t -> t
 
--- TODO: change function name
 cFold :: Term -> Term
 cFold term = case term of
     Lam i x xt t            -> Lam i x xt (close x $ cFold (open x t))
