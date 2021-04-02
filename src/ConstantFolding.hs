@@ -1,8 +1,8 @@
 {-# LANGUAGE PatternSynonyms #-}
 {-|
 Module      : ConstantFolding
-Description : Optimizacion de ConstantFolding
-Copyright   : (c) Roman Castellarin 2020.
+Description : Optimización de constant folding
+Copyright   : (c) Roman Castellarin, Sebastián Zimmermann 2021.
 License     : GPL-3
 Stability   : experimental
 -}

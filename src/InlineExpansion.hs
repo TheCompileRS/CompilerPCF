@@ -2,7 +2,7 @@
 {-|
 Module      : InlineExpansion
 Description : Optimizacion de InlineExpansion
-Copyright   : (c) Roman Castellarin 2020.
+Copyright   : (c) Roman Castellarin, Sebastián Zimmermann 2021.
 License     : GPL-3
 Stability   : experimental
 -}

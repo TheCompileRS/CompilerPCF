@@ -1,11 +1,9 @@
 {-|
 Module      : ClosureConv
-Description : TODO
+Description : Implementación de una conversión de clausuras y hoisting
 Copyright   : (c) Roman Castellarin, Sebastián Zimmermann, 2020.
 License     : GPL-3
 Stability   : experimental
-
-TODO WHAT IT DOES
 -}
 module ClosureConv
   (runCC, IrTerm(..), IrDecl(..))
@@ -18,6 +16,7 @@ import Control.Monad.Writer (runWriter, tell, Writer)
 import Subst (openN, open)
 import Data.List (isPrefixOf)
 
+-- | Términos intermedios
 data IrTerm = IrVar Name
             | IrCall IrTerm [IrTerm]
             | IrConst Const
@@ -28,10 +27,13 @@ data IrTerm = IrVar Name
             | IrAccess IrTerm Int
       deriving Show
 
+-- | Declaraciones globales
 data IrDecl = IrVal { irDeclName :: Name, irDeclDef :: IrTerm }
             | IrFun { irDeclName :: Name, irDeclArity :: Int, irDeclArgNames :: [Name], irDeclBody :: IrTerm }
     deriving Show
 
+-- | 'ConvertMonad' es una mónada cuyo estado reprensenta un contador de nombres frescos,
+-- mientras que el Writer se encarga de recolectar las definiciones globales.
 type ConvertMonad = StateT Int (Writer [IrDecl])
 
 
@@ -48,6 +50,7 @@ genName s = do n <- get
                modify (+1)
                return $ "__" ++ s ++ show n 
 
+-- | 'closureConvert' transforma los términos en clasuras.
 closureConvert :: Term -> ConvertMonad IrTerm
 closureConvert term = case term of
     V _ (Free var)      -> return $ IrVar var
@@ -64,7 +67,6 @@ closureConvert term = case term of
     App _ f x           -> do f' <- closureConvert f
                               x' <- closureConvert x
                               return $ IrCall (IrAccess f' 0) [f', x']
-                              -- change use IRLET
     UnaryOp {}          -> error "unary operators should have been translated to binary"
     BinaryOp _ op t1 t2 -> do t1' <- closureConvert t1
                               t2' <- closureConvert t2

@@ -14,18 +14,17 @@ module Bytecompile
  where
 
 import Lang 
-import Subst
+import Subst (close)
 import MonadPCF
 
 -- for debugging
-import Parse
-import Elab
+import Parse (runP,tm)
+import Elab (elab)
 
 import qualified Data.ByteString.Lazy as BS
 import Data.Binary ( Word32, Binary(put, get), decode, encode )
 import Data.Binary.Put ( putWord32le )
 import Data.Binary.Get ( getWord32le, isEmpty )
-import Debug.Trace (trace)
 
 type Opcode = Int
 type Bytecode = [Int]
@@ -45,7 +44,7 @@ instance Binary Bytecode32 where
                       BC xs <- go
                       return $ BC (x:xs)
 
-{- Estos sinónimos de patrón nos permiten escribir y hacer
+{-| Estos sinónimos de patrón nos permiten escribir y hacer
 pattern-matching sobre el nombre de la operación en lugar del código
 entero, por ejemplo:
  
@@ -58,6 +57,7 @@ entero, por ejemplo:
  En lo posible, usar estos códigos exactos para poder ejecutar un
  mismo bytecode compilado en distintas implementaciones de la máquina.
 -}
+
 pattern RETURN   = 1
 pattern CONST    = 2
 pattern ACCESS   = 3
@@ -77,7 +77,7 @@ pattern MINUS    = 16
 pattern TAILCALL = 17
 
 
--- | 'tailbc' compiles with tail recursion optimization, if it's possible
+-- | 'tailbc' compila con recursión de cola, si es posible
 tailbc ::MonadPCF m => Term -> m Bytecode
 tailbc term = case term of
   App _ t1 t2       -> do p1 <- bc t1
@@ -97,10 +97,9 @@ tailbc term = case term of
   t                 -> do p <- bc t
                           return $ p ++ [RETURN]
 
--- | 'bc' compiles a set of terms into bytecode (to a virtual machine)
+-- | 'bc' compila un conjunto de terminos en bytecode (una MV)
 bc :: MonadPCF m => Term -> m Bytecode
 bc term = case term of
-   -- _ | trace ("bcing " ++ show term ++ "\n") False -> undefined
     V _ (Bound i)       -> return [ACCESS, i]
     V i (Free x)        -> do mx <- lookupDecl x
                               case mx of
@@ -147,7 +146,7 @@ bytecompileModule prog = do
   lastSymbol = V (declPos lastDecl) $ Free $ declName lastDecl
   letter d term = Let (declPos d) (declName d) (declType d) (declBody d) (close (declName d) term)
 
--- | Toma un bytecode, lo codifica y lo escribe un archivo 
+-- | Toma un bytecode, lo codifica y lo escribe en un archivo
 bcWrite :: Bytecode -> FilePath -> IO ()
 bcWrite bs filename = BS.writeFile filename (encode $ BC $ fromIntegral <$> bs)
 
@@ -155,20 +154,26 @@ bcWrite bs filename = BS.writeFile filename (encode $ BC $ fromIntegral <$> bs)
 -- * Ejecución de bytecode
 ---------------------------
 
--- | Lee de un archivo y lo decodifica a bytecode
+-- | Lee un archivo y lo decodifica a bytecode
 bcRead :: FilePath -> IO Bytecode
 bcRead filename = map fromIntegral <$> un32  <$> decode <$> BS.readFile filename
 
 runBC :: MonadPCF m => Bytecode -> m ()
 runBC prog = bVM (prog, [], [])
 
+-- | Un AST de valores
 data Val = I Int | Fun Env Bytecode | RA Env Bytecode
   deriving Show
+
+-- | Un estado es una lista de valores
 type Env = [Val]
+
+-- | Una pila es una lista de valores
 type Stack = [Val]
 
 
--- | Emulates a virtual machine, taking a bytecode and changing the enviroment and stack of the machine
+
+-- | Emula una máquina virtual, tomando bytecode y cambiando el estado y stack de la maquina
 bVM :: MonadPCF m => (Bytecode, Env, Stack) -> m ()
 bVM stateVM = case stateVM of
   (RETURN:_        , _        , val:RA env prog:stack) -> bVM (prog, env, val:stack) 
@@ -206,7 +211,6 @@ parseTerm s = case runP tm s "parseTerm" of
       Right a -> a 
 
 mt :: MonadPCF m => m Bytecode
---mt = bc =<< (elab . parseTerm) "fix (f: Nat -> Nat) (n: Nat) -> ifz n then 0 else f (pred n)"
 mt = bc =<< (elab . parseTerm) "(fix (suma: Nat -> Nat -> Nat)  (x y: Nat) -> ifz y then x else succ (suma x (pred y))) 100000 23456"
 
 mtc :: MonadPCF m => m ()

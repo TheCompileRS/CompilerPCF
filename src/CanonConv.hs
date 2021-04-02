@@ -1,7 +1,15 @@
 {-# LANGUAGE LambdaCase #-}
+{-|
+Module      : CanonConv
+Description : Traduce a representación en bajo nivel.
+Copyright   : (c) Roman Castellarin, Sebastián Zimmermann, Mauro Jaskelioff, Guido Martínez, 2020.
+License     : GPL-3
+Stability   : experimental
+
+Este modulo traduce declaraciones IrTerm a una representación en bajo nivel, que existe en el modulo CIR
+-}
 
 module CanonConv where
-
 
 import CIR
 import ClosureConv
@@ -23,23 +31,6 @@ pcfMain decls = do   openBlock "pcfmain"
                     if null ds then return t else process ds
           process [] = undefined
 
-
-{-
-runCanon :: [IrDecl] -> CanonProg
-runCanon decls = CanonProg $ canon_funs ++ canon_vals ++ [canon_main]
- where 
-        vals = filter (\case IrVal{} -> True; _ -> False) decls
-        funs = filter (\case IrFun{} -> True; _ -> False) decls
-        
-        canon_vals = Right . irDeclName  <$> vals
-        canon_funs = convertFuns <$> funs
-        canon_main = Left ("pcfmain", [], canon_main_blocks )
-
-        start_state = (0, "", [])
-        canon_main_blocks = snd . runWriter $ runStateT (pcfMain vals) start_state
-        convertFuns d = Left (irDeclName d, irDeclArgNames d, blocks)
-         where blocks = snd . runWriter $ runStateT (translate $ irDeclBody d) start_state
--}
 
 runCanon :: [IrDecl] -> CanonProg
 runCanon decls = CanonProg $ canon_funs ++ canon_vals ++ [canon_main]
@@ -63,20 +54,9 @@ runCanon decls = CanonProg $ canon_funs ++ canon_vals ++ [canon_main]
                             t <- translate body
                             closeBlock $ Return t
 
-
 type CanonRes = Either CanonFun CanonVal
 
 type CanonM = StateT (Int,Loc,[Inst]) (Writer Blocks)
-
--- data IrTerm = IrVar Name
---             | IrCall IrTerm [IrTerm]
---             | IrConst Const
---             | IrBinaryOp BinaryOp IrTerm IrTerm
---             | IrLet Name IrTerm IrTerm
---             | IrIfZ IrTerm IrTerm IrTerm
---             | MkClosure Name [IrTerm]
---             | IrAccess IrTerm Int
---       deriving Show
 
 getNew :: CanonM Reg
 getNew = do (nreg, _, _) <- get
@@ -103,6 +83,8 @@ closeBlock t = do   (_, l, s) <- get
                     modify $ \(n, _, _) -> (n, "", [])
                     tell [(l, s, t)]
 
+-- | 'translate' traduce terminos IrTerm a valores, guardando en CanonM (State)
+-- los registros y blocks.
 translate :: IrTerm -> CanonM Val
 translate term = case term of
   IrVar x           -> do
@@ -134,7 +116,6 @@ translate term = case term of
       r <- getNew
       vs <- mapM translate ts
       makeInst $ Assign r $ CIR.MkClosure x vs
-      --makeInst $ Store x $ V $ R r
       return $ R r
   IrAccess t n -> do
       r <- getNew
@@ -142,15 +123,12 @@ translate term = case term of
       makeInst $ Assign r $ Access v n
       return $ R r
   IrIfZ t1 t2 t3 -> do
-      --loc_entry <- getLoc "entry"
       loc_then  <- getLoc "then"
       loc_else  <- getLoc "else"
       loc_cont  <- getLoc "cont"
 
 
-      --r_cond <- getNew
       v1 <- translate t1
-      --makeInst $ Assign r_cond $ V v1
 
       closeBlock $ CondJump (Eq v1 (C 0)) loc_then loc_else
 
