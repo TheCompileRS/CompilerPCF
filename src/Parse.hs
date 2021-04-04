@@ -283,7 +283,7 @@ runP :: P a -> String -> String -> Either ParseError a
 runP p s filename = runParser (whiteSpace *> p <* eof) () filename s
 
 -- | para debugging en uso interactivo (ghci)
-parse :: String -> (Either (SDecl STerm) STerm)
+parse :: String -> Either (SDecl STerm) STerm
 parse s = case runP declOrTm s "" of
             Right t -> t
             Left _ -> error ("no parse: " ++ show s)

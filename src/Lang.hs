@@ -1,5 +1,4 @@
 {-# LANGUAGE DeriveTraversable #-}
-{-# LANGUAGE DeriveFunctor #-}
 
 {-|
 Module      : Lang
@@ -36,7 +35,7 @@ data STy =
     | SSynTy Name
     deriving (Show,Eq)
 
-data Const = CNat Int
+newtype Const = CNat Int
   deriving Show
 
 data UnaryOp = Succ | Pred

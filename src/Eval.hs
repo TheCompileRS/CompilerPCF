@@ -34,18 +34,18 @@ eval (App _ l r) = do
         (ff@(Fix _ _ _ _ _ t), n) ->
            eval (substN [ff, n] t)
         _ ->
-           abort("Error de tipo en runtime " ++ show (le, re))
+           abort $ "Error de tipo en runtime " ++ show (le, re)
 
 eval (UnaryOp p Succ t) = do
         te <- eval t
         case te of
           Const _ (CNat n) -> return (Const p (CNat (n+1)))
-          _                -> abort ("Error de tipo en runtime!")
+          _                -> abort "Error de tipo en runtime!"
 eval (UnaryOp p Pred t) = do
         te <- eval t
         case te of
           Const _ (CNat n) -> return (Const p (CNat (max 0 (n-1))))
-          _                -> abort ("Error de tipo en runtime!")
+          _                -> abort "Error de tipo en runtime!"
 
 eval (BinaryOp p op t1 t2) = do 
                      te1 <- eval t1
@@ -53,13 +53,13 @@ eval (BinaryOp p op t1 t2) = do
                      case (op, te1, te2) of
                         (Plus,  Const _ (CNat n1), Const _ (CNat n2)) -> return $ Const p $ CNat $ n1 + n2
                         (Minus, Const _ (CNat n1), Const _ (CNat n2)) -> return $ Const p $ CNat $ max 0 $ n1 - n2
-                        _                                             -> abort ("Error de tipo en runtime!")
+                        _                                             -> abort "Error de tipo en runtime!"
 eval (IfZ _ c t e) = do
      ce <- eval c
      case ce of
        Const _ (CNat 0) -> eval t
        Const _ (CNat _) -> eval e
-       _ -> abort ("Error de tipo en runtime!")
+       _ -> abort "Error de tipo en runtime!"
 
 -- nada más para reducir
 eval t = return t

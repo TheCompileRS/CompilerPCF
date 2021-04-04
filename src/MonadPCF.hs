@@ -1,5 +1,4 @@
 {-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 
 {-|
@@ -96,7 +95,7 @@ failPCF = failPosPCF NoPos
 
 catchErrors  :: MonadPCF m => m a -> m (Maybe a)
 catchErrors c = catchError (Just <$> c) 
-                           (\e -> liftIO $ hPutStrLn stderr (show e) 
+                           (\e -> liftIO $ hPrint stderr e 
                               >> return Nothing)
 
 ----
