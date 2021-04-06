@@ -1,5 +1,13 @@
-# FIX
+# FINAL STEPS
     - main should show parse errors
+    - Opt: Add * and / binary operators
+    - *Opt: Erase Succ and Pred* 
+    - Compilation flags (turn on off intermediate step output and ass optimizer round count )
+    - factor out interactive mode from main.hs 
+    - general documentation of main.hs
+    - Testing?
+
+
 # Compiler
 	- Syntactic Sugar
 	- ~Abstract Machines~
@@ -39,29 +47,27 @@
     - ~Add Help in new Main~
     - Add TypeCheck in new Main
     - ~*Opt: Modify CEK to accept Let terms.*~
-    - Opt: Add * and / binary operators
+    
 
 ## ByteCompilation in C
     - ~Add C file, adding IFzero~
     - ~Add binary operations~
     - ~Implement Stack tail calls~
     - ~Modify compilation to use Stack tail calls~
-    - Implement Stack tail calls in recursive functions (CHECK)
+    - ~Implement Stack tail calls in recursive functions (CHECK)~
     - ~*Opt: Implement TailCalls in Haskell ByteComp*~
-    - *Opt: Erase Succ and Pred* 
+    
 
 ## Closure Convertions
     - ~Make closure convertions for terms~
     - ~Add cc in main~
-    - Make Closure Convertions for recursive functions
+    - ~Make Closure Convertions for recursive functions~
     - 
 
-## Testing
-	- Add Testing
 
 ## LLVM
-    - Make CanonConv
-    - Add OpenBlock and CloseBlock helpers
+    - ~Make CanonConv~
+    - ~Add OpenBlock and CloseBlock helpers~
     - Note: if the source program is blank, it shouldn't parse 
         (or else pcf_main won't have irVals to translate)
-    - FIX: DOUBLE TRANSLATE FOR IRFUN IN PCFMAIN
+    - ~FIX: DOUBLE TRANSLATE FOR IRFUN IN PCFMAIN~
