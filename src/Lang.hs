@@ -23,12 +23,13 @@ import Data.List (nub)
 
 type Name = String
 
--- | AST de Tipos
+-- | AST de tipos
 data Ty = 
       NatTy 
     | FunTy Ty Ty
     deriving (Show,Eq)
 
+-- | AST de tipos azucarados
 data STy = 
       SNatTy 
     | SFunTy STy STy
@@ -115,7 +116,6 @@ getInfo (Fix i _ _ _ _ _) = i
 getInfo (IfZ i _ _ _) = i
 
 -- | Obtiene las variables libres de un término.
-
 freeVars  :: Tm info ty Var -> [Name]
 freeVars t = nub $ freeVars' t
   where 

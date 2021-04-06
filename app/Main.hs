@@ -14,14 +14,12 @@ module Main where
 
 import System.Console.Haskeline ( defaultSettings, getInputLine, runInputT, InputT )
 import Control.Monad.Catch (MonadMask)
-import Data.Maybe ( catMaybes ) 
+import Data.Maybe ( catMaybes )
 
---import Control.Monad
 import Control.Monad.Trans
 import Data.List (intercalate, nub,  intersperse, isPrefixOf )
 import Data.Char ( isSpace )
 import Control.Exception ( catch , IOException )
---import System.Environment ( getArgs )
 import System.IO ( stderr, hPutStr )
 
 import Global ( GlEnv(..) )
@@ -29,7 +27,6 @@ import Errors
 import Lang
 import Parse ( P, tm, program, declOrTm, runP )
 import Elab ( elab, elabDecl )
---import Eval ( eval )
 import PPrint ( pp , ppTy )
 import MonadPCF
 import TypeChecker ( tc, tcDecl )
@@ -43,6 +40,9 @@ import System.Process (system)
 
 import LLVM.Pretty
 import qualified Data.Text.Lazy.IO as TIO
+import qualified DeadCode (optimize)
+import qualified ConstantFolding (optimize)
+import qualified InlineExpansion (optimize)
 
 data Mode = Interactive
           | Typecheck
@@ -58,7 +58,7 @@ parseMode = flag' Typecheck ( long "typecheck" <> short 't' <> help "Solo cheque
             <|> flag' ClosureConv (long "cc" <> help "Conversion de clausuras")
             <|> flag Interactive Interactive ( long "interactive" <> short 'i'
                                                <> help "Ejecutar en forma interactiva" )
-            
+
 -- | Parser de opciones general, consiste de un modo y una lista de archivos a procesar
 parseArgs :: Parser (Mode,[FilePath])
 parseArgs = (,) <$> parseMode <*> many (argument str (metavar "FILES..."))
@@ -70,7 +70,7 @@ main = execParser opts >>= go
                 ( fullDesc
                   <> progDesc "Compilador de PCF"
                   <> header "Compilador de PCF de la materia Compiladores 2020" )
-    
+
     go :: (Mode,[FilePath]) -> IO ()
     go (Interactive,files) = do runPCF (runInputT defaultSettings (main' files))
                                 return ()
@@ -79,7 +79,7 @@ main = execParser opts >>= go
                                  return ()
     go (Run,[file]) = do runPCF $ bcRunFile file
                          return ()
-    go (ClosureConv,files) = do  runPCF $ compileClosures files 
+    go (ClosureConv,files) = do  runPCF $ compileClosures files
                                  return ()
     go _ = return ()
 
@@ -99,20 +99,22 @@ compileClosure file = do
                          hPutStr stderr ("No se pudo abrir el archivo " ++ filename ++ ": " ++ err ++"\n")
                          return "")
     sdecls <- parseIO filename program x
-    mapM_ handleDecl sdecls
+    mapM_ handleDecl sdecls -- type checking
     decls' <- catMaybes <$> mapM elabDecl sdecls 
-    --let decls = ConstantFolding.optimize decls'
-    let decls = decls'
-
+    printPCF $ ("\nORIGINALLY\n" ++) $ intercalate "\n" $ show <$> decls'
+    -- HACEMOS N=20 RONDAS AHRE
+    let optimizer = InlineExpansion.optimize . DeadCode.optimize . ConstantFolding.optimize
+    let decls = iterate optimizer decls' !! 20
+    printPCF $ ("\nOPTIMIZED\n" ++) $ intercalate "\n" $ show <$> decls
     printPCF $ ("\nCLOSURE CONVERSIONS\n" ++) $ intercalate "\n" $ show <$> runCC decls
     let canonprog = runCanon. runCC $ decls
     printPCF $ "\nCANONIZED PROGRAM\n" ++ show canonprog
-    let irdecls = (codegen . runCanon. runCC) decls
+    let irdecls = codegen canonprog
     liftIO $ TIO.writeFile "output.ll" (ppllvm irdecls)
     let commandline = "clang -Wno-override-module output.ll src/runtime.c -lgc -o prog"
     liftIO $ system commandline
     return ()
-    
+
 
 bcRunFile :: MonadPCF m => String -> m ()
 bcRunFile filename = do
@@ -135,15 +137,15 @@ bcCompileFile f = do
                          hPutStr stderr ("No se pudo abrir el archivo " ++ filename ++ ": " ++ err ++"\n")
                          return "")
     sdecls <- parseIO filename program x
-    decls <- catMaybes <$> mapM elabDecl sdecls 
+    decls <- catMaybes <$> mapM elabDecl sdecls
     code <- bytecompileModule decls
     let newFilename = take (length filename - 3) filename ++ "byte"
     printPCF $ show $ length code
-    liftIO $ bcWrite code newFilename 
+    liftIO $ bcWrite code newFilename
 
 prompt :: String
 prompt = "PCF> "
-          
+
 main' :: (MonadPCF m, MonadMask m) => [String] -> InputT m ()
 main' args = do
         lift $ catchErrors $ compileFiles args
@@ -151,7 +153,7 @@ main' args = do
         when (inter s) $ liftIO $ putStrLn
           (  "Entorno interactivo para PCF1.\n"
           ++ "Escriba :? para recibir ayuda.")
-        loop  
+        loop
   where loop = do
            minput <- getInputLine prompt
            case minput of
@@ -161,7 +163,7 @@ main' args = do
                        c <- liftIO $ interpretCommand x
                        b <- lift $ catchErrors $ handleCommand c
                        maybe loop (flip when loop) b
- 
+
 compileFiles ::  MonadPCF m => [String] -> m ()
 compileFiles []     = return ()
 compileFiles (x:xs) = do
@@ -188,16 +190,15 @@ parseIO filename p x = case runP p x filename of
                   Right r -> return r
 
 handleDecl ::  MonadPCF m => SDecl STerm -> m ()
-handleDecl decl = do 
+handleDecl decl = do
   decl' <- elabDecl decl
   case decl' of
     Nothing -> return ()
     Just (Decl p x ty tt) -> do
         tcDecl (Decl p x ty tt)
-        --te <- eval tt
-        --te <- liftM valToTerm $ search tt [] []
         addDecl (Decl p x ty tt)
 
+-- | Comandos del modo interprete
 data Command = Compile CompileForm
              | Print String
              | Type String
@@ -274,7 +275,7 @@ compilePhrase ::  MonadPCF m => String -> m ()
 compilePhrase x =
   do
     dot <- parseIO "<interactive>" declOrTm x
-    case dot of 
+    case dot of
       Left d  -> handleDecl d
       Right t -> handleTerm t
 
@@ -284,7 +285,7 @@ handleTerm t = do
          s <- get
          ty <- tc tt (tyEnv s)
          --te <- eval tt
-         te <- liftM valToTerm $ search tt [] [] 
+         te <- liftM valToTerm $ search tt [] []
          printPCF (pp te ++ " : " ++ ppTy ty)
 
 printPhrase   :: MonadPCF m => String -> m ()
@@ -292,9 +293,9 @@ printPhrase x =
   do
     x' <- parseIO "<interactive>" tm x
     ex <- elab x'
-    t  <- case x' of 
+    t  <- case x' of
            (BV _ f) -> maybe ex id <$> lookupDecl f
-           _        -> return ex  
+           _        -> return ex
     printPCF "STerm:"
     printPCF (show x')
     printPCF "\nTerm:"

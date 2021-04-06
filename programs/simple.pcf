@@ -1,4 +1,3 @@
-
 #let rec mult  (x y: Nat) : Nat = ifz y then 0 else x + mult x (y-1)
 
 let rec fivetimes (x: Nat) : Nat = ifz x then 0 else 5 + fivetimes (x-1) 

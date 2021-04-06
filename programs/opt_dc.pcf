@@ -1,0 +1,7 @@
+let x : Nat = 5
+let v : Nat = 100
+let f (x : Nat) : Nat = x + g v (x+x)
+let y : Nat = z + 1
+let g (x y : Nat) : Nat = x + y
+let z : Nat = y + 1
+let w : Nat = f 10

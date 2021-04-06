@@ -13,7 +13,6 @@ import Prelude hiding ( const )
 import Lang
 import Common
 import Text.Parsec hiding (runP)
---import Data.Char ( isNumber, ord )
 import qualified Text.Parsec.Token as Tok
 import Text.ParserCombinators.Parsec.Language ( GenLanguageDef(..), emptyDef )
 import Data.Char (isUpper, isLower)
@@ -63,12 +62,6 @@ num = fromInteger <$> natural
 
 var :: P Name
 var = identifier
-
--- ~ do
-    -- ~ (c:cs) <- identifier 
-    -- ~ if (isLower c) 
-    -- ~ then return (c:cs)
-    -- ~ else parserZero
 
 getPos :: P Pos
 getPos = do pos <- getPosition
@@ -285,11 +278,11 @@ program = many decl
 declOrTm :: P (Either (SDecl STerm) STerm)
 declOrTm =  try (Right <$> tm) <|> (Left <$> decl) 
 
--- Corre un parser, chequeando que se pueda consumir toda la entrada
+-- | Corre un parser, chequeando que se pueda consumir toda la entrada
 runP :: P a -> String -> String -> Either ParseError a
 runP p s filename = runParser (whiteSpace *> p <* eof) () filename s
 
---para debugging en uso interactivo (ghci)
+-- | para debugging en uso interactivo (ghci)
 parse :: String -> (Either (SDecl STerm) STerm)
 parse s = case runP declOrTm s "" of
             Right t -> t
