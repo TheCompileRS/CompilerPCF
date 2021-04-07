@@ -32,6 +32,7 @@ tc (Const _ (CNat _)) _ = return NatTy
 tc (UnaryOp _ _ t) bs = do 
       ty <- tc t bs
       expect NatTy ty t
+-- shortcut which will break silently if we extend the language
 tc (BinaryOp _ _ t1 t2) bs = do 
       ty1 <- tc t1 bs
       ty2 <- tc t2 bs

@@ -107,10 +107,6 @@ unaryOpName =
       (reserved "succ" *> return Succ)
   <|> (reserved "pred" *> return Pred)
 
-binaryOpName :: P BinaryOp 
-binaryOpName = foldr (<|>) parserZero $ map f [Plus, Minus, Times, Div] 
-      where f op = reservedOp (binOpSym op) *> return op
-
 unaryOp :: P STerm
 unaryOp = do
   i <- getPos
@@ -118,11 +114,11 @@ unaryOp = do
   a <- atom
   return $ BUnaryOp i o a
 
-binaryOp :: P (STerm -> STerm -> STerm)
-binaryOp = do
+binaryOp :: BinaryOp -> P (STerm -> STerm -> STerm)
+binaryOp op = do
   i  <- getPos
-  o  <- binaryOpName
-  return $ BBinaryOp i o
+  reservedOp $ binOpSym op
+  return $ BBinaryOp i op
 
 atom :: P STerm
 atom =     (flip BConst <$> const <*> getPos)
@@ -186,10 +182,13 @@ fix = do i <- getPos
 
 -- | Parser de términos
 tm :: P STerm
-tm = chainl1 tm_term binaryOp
+tm = chainl1 tmTerm (choice $ map binaryOp [Plus, Minus])
 
-tm_term :: P STerm
-tm_term = try unaryOp <|> app <|> lam <|> ifz <|>  fix <|> try letFix <|> try letIn <|> letLam
+tmTerm :: P STerm
+tmTerm = chainl1 tmFactor (choice $ map binaryOp [Times, Div])
+
+tmFactor :: P STerm
+tmFactor = try unaryOp <|> app <|> lam <|> ifz <|>  fix <|> try letFix <|> try letIn <|> letLam
 
 letIn :: P STerm
 letIn = do
