@@ -1,7 +1,7 @@
 {-|
 Module      : ClosureConv
 Description : Implementación de una conversión de clausuras y hoisting
-Copyright   : (c) Roman Castellarin, Sebastián Zimmermann, 2020.
+Copyright   : (c) Román Castellarin, Sebastián Zimmermann, 2020.
 License     : GPL-3
 Stability   : experimental
 -}

@@ -1,7 +1,7 @@
 {-|
 Module      : DeadCode
 Description : Optimizacion de dead code
-Copyright   : (c) Roman Castellarin, Sebastián Zimmermann 2021.
+Copyright   : (c) Román Castellarin, Sebastián Zimmermann 2021.
 License     : GPL-3
 Stability   : experimental
 -}

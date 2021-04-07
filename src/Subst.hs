@@ -1,7 +1,7 @@
 {-|
 Module      : Subst
 Description : Define las operaciones de la representacion locally nameless
-Copyright   : (c) Mauro Jaskelioff, Guido Martínez, Roman Castellarin, Sebastián Zimmermann 2020.
+Copyright   : (c) Mauro Jaskelioff, Guido Martínez, Román Castellarin, Sebastián Zimmermann 2020.
 License     : GPL-3
 Stability   : experimental
 
@@ -20,9 +20,9 @@ import Data.List ( elemIndex )
 varChanger :: (Int -> Pos -> Name -> Term) --que hacemos con las variables localmente libres
            -> (Int -> Pos -> Int ->  Term) --que hacemos con los indices de De Bruijn
            -> Term -> Term
-varChanger local bound term = go 0 term where
+varChanger local bound = go 0 where
   go n   (V p (Bound i)) = bound n p i
-  go n   (V p (Free x)) = local n p x 
+  go n   (V p (Free x)) = local n p x
   go n (Lam p y ty t)   = Lam p y ty (go (n+1) t)
   go n (App p l r)   = App p (go n l) (go n r)
   go n (Fix p f fty x xty t) = Fix p f fty x xty (go (n+2) t)
@@ -70,7 +70,7 @@ closeN ns = varChanger lcl (\_ p i -> V p (Bound i))
 -- nombres frescos.
 substN :: [Term] -> Term -> Term
 substN ns = varChanger (\_ p n -> V p (Free n)) bnd
-   where bnd depth p i 
+   where bnd depth p i
              | i <  depth = V p (Bound i)
              | i >= depth && i < depth + nns
                 = nsr !! (i - depth)
@@ -81,10 +81,10 @@ substN ns = varChanger (\_ p n -> V p (Free n)) bnd
 -- Algunas definiciones auxiliares:
 
 subst :: Term -> Term -> Term
-subst n m = substN [n] m
+subst n = substN [n]
 
 close :: Name -> Term -> Term
 close nm = closeN [nm]
 
 open :: Name -> Term -> Term
-open x t = openN [x] t
+open x = openN [x]

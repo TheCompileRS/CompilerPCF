@@ -1,7 +1,7 @@
 {-|
 Module      : Parse
 Description : Define un parser de términos PCF1 a términos azucarados, fully named.
-Copyright   : (c) Mauro Jaskelioff, Guido Martínez, Roman Castellarin, Sebastián Zimmermann 2020.
+Copyright   : (c) Mauro Jaskelioff, Guido Martínez, Román Castellarin, Sebastián Zimmermann 2020.
 License     : GPL-3
 Stability   : experimental
 

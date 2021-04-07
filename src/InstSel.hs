@@ -1,7 +1,7 @@
 {-|
 Module      : InstSel
 Description : Compilación a LLVM
-Copyright   : (c) Mauro Jaskelioff, Guido Martínez, Roman Castellarin, Sebastián Zimmermann 2021.
+Copyright   : (c) Mauro Jaskelioff, Guido Martínez, Román Castellarin, Sebastián Zimmermann 2021.
 License     : GPL-3
 Stability   : experimental
 -}
