@@ -15,7 +15,8 @@ import Common
 import Text.Parsec hiding (runP)
 import qualified Text.Parsec.Token as Tok
 import Text.ParserCombinators.Parsec.Language ( GenLanguageDef(..), emptyDef )
-import Data.Char (isUpper, isLower)
+import Data.Char (isUpper)
+import Control.Monad (guard)
 
 type P = Parsec String ()
 
@@ -29,16 +30,16 @@ lexer = Tok.makeTokenParser $
          commentStart  = "{-",
          commentEnd    = "-}",
          commentLine    = "#",
-         reservedNames = ["let", "fun", "fix", "then", "else", 
+         reservedNames = ["let", "fun", "fix", "then", "else",
                           "succ", "pred", "ifz", "Nat", "rec", "in", "type"],
-         reservedOpNames = ["->", ":", "=", "+", "-"],
+         reservedOpNames = ["->", ":", "=", "+", "-", "*", "/"],
          caseSensitive = True
         }
 
 whiteSpace :: P ()
 whiteSpace = Tok.whiteSpace lexer
 
-natural :: P Integer 
+natural :: P Integer
 natural = Tok.natural lexer
 
 parens :: P a -> P a
@@ -67,12 +68,14 @@ getPos :: P Pos
 getPos = do pos <- getPosition
             return $ Pos (sourceLine pos) (sourceColumn pos)
 
+tyName :: P Name
+tyName = do
+    (c:cs) <- identifier
+    guard $ isUpper c
+    return $ c:cs
+
 tyVar :: P STy
-tyVar = do
-    (c:cs)  <- identifier
-    if (isUpper c) 
-    then return $ SSynTy(c:cs) 
-    else parserZero
+tyVar = SSynTy <$> tyName
 
 tyatom :: P STy
 tyatom = (reserved "Nat" >> return SNatTy)
@@ -80,21 +83,21 @@ tyatom = (reserved "Nat" >> return SNatTy)
          <|> tyVar
 
 typeP :: P STy
-typeP = try (do 
+typeP = try (do
           x <- tyatom
           reservedOp "->"
           y <- typeP
           return (SFunTy x y))
       <|> tyatom
-          
+
 declTypeP :: P (SDecl STerm)
 declTypeP = do
     i <- getPos
     reserved "type"
-    name <- identifier -- TODO: replace by real parser 
+    name <- tyName
     reservedOp "="
     ty <- typeP
-    return (SDeclType i name ty)
+    return $ SDeclType i name ty
 
 const :: P Const
 const = CNat <$> num
@@ -104,10 +107,9 @@ unaryOpName =
       (reserved "succ" *> return Succ)
   <|> (reserved "pred" *> return Pred)
 
-binaryOpName :: P BinaryOp
-binaryOpName =
-      (reservedOp "+" *> return Plus)
-  <|> (reservedOp "-" *> return Minus)
+binaryOpName :: P BinaryOp 
+binaryOpName = foldr (<|>) parserZero $ map f [Plus, Minus, Times, Div] 
+      where f op = reservedOp (binOpSym op) *> return op
 
 unaryOp :: P STerm
 unaryOp = do
@@ -129,7 +131,7 @@ atom =     (flip BConst <$> const <*> getPos)
        <|> eta_expansion
 
 eta_expansion :: P STerm
-eta_expansion = do 
+eta_expansion = do
             i <- getPos
             o <- unaryOpName
             let a = BUnaryOp i o $ BV i "n"
@@ -167,7 +169,7 @@ binding = do v <- var
              return (v, ty)
 
 multibinding :: P MultiBinder
-multibinding = many1 $ parens $ 
+multibinding = many1 $ parens $
         do  xs <- many1 var
             reservedOp ":"
             t  <- typeP
@@ -187,10 +189,10 @@ tm :: P STerm
 tm = chainl1 tm_term binaryOp
 
 tm_term :: P STerm
-tm_term = try unaryOp <|> app <|> lam <|> ifz <|>  fix <|> try letFix <|> try letIn <|> letLam   
+tm_term = try unaryOp <|> app <|> lam <|> ifz <|>  fix <|> try letFix <|> try letIn <|> letLam
 
 letIn :: P STerm
-letIn = do 
+letIn = do
      i <- getPos
      reserved "let"
      (v, ty) <- binding
@@ -201,7 +203,7 @@ letIn = do
      return (SLet i v ty t1 t2)
 
 letLam :: P STerm
-letLam = do 
+letLam = do
       i <- getPos
       reserved "let"
       f <- var
@@ -215,7 +217,7 @@ letLam = do
       return (SLetLam i f fty bs t1 t2)
 
 letFix :: P STerm
-letFix = do 
+letFix = do
       i <- getPos
       reserved "let"
       reserved "rec"
@@ -231,10 +233,10 @@ letFix = do
 
 -- | Parser de declaraciones
 decl :: P (SDecl STerm)
-decl = declTypeP <|> try declFix <|> try declLet <|> declLam 
+decl = declTypeP <|> try declFix <|> try declLet <|> declLam
 
 declLet :: P (SDecl STerm)
-declLet = do 
+declLet = do
       i <- getPos
       reserved "let"
       v <- var
@@ -245,7 +247,7 @@ declLet = do
       return (SDecl i v ty t)
 
 declLam :: P (SDecl STerm)
-declLam = do 
+declLam = do
       i <- getPos
       reserved "let"
       f <- var
@@ -257,7 +259,7 @@ declLam = do
       return (SDeclLam i f ty bs t)
 
 declFix :: P (SDecl STerm)
-declFix = do 
+declFix = do
       i <- getPos
       reserved "let"
       reserved "rec"
@@ -276,7 +278,7 @@ program = many decl
 -- | Parsea una declaración a un término
 -- Útil para las sesiones interactivas
 declOrTm :: P (Either (SDecl STerm) STerm)
-declOrTm =  try (Right <$> tm) <|> (Left <$> decl) 
+declOrTm =  try (Right <$> tm) <|> (Left <$> decl)
 
 -- | Corre un parser, chequeando que se pueda consumir toda la entrada
 runP :: P a -> String -> String -> Either ParseError a

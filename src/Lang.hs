@@ -42,7 +42,10 @@ data Const = CNat Int
 data UnaryOp = Succ | Pred
   deriving Show
 
-data BinaryOp = Plus | Minus
+data BinaryOp = Plus 
+              | Minus
+              | Times
+              | Div
   deriving Show
 
 type MultiBinder = [([Name], STy)]
@@ -117,7 +120,7 @@ getInfo (IfZ i _ _ _) = i
 
 -- | Obtiene las variables libres de un término.
 freeVars  :: Tm info ty Var -> [Name]
-freeVars t = nub $ freeVars' t
+freeVars term = nub $ freeVars' term
   where 
     freeVars'  (V _ (Free v))        = [v]
     freeVars'  (V _ _)               = []
@@ -129,3 +132,17 @@ freeVars t = nub $ freeVars' t
     freeVars'  (Fix _ _ _ _ _ t)     = freeVars' t
     freeVars'  (IfZ _ c t e)         = freeVars' c ++ freeVars' t ++ freeVars' e
     freeVars'  (Const _ _)           = []
+
+binOpDef :: BinaryOp -> (Int -> Int -> Int)
+binOpDef op = case op of
+  Plus    -> (+)
+  Minus   -> \ a b -> max 0 (a - b)
+  Times   -> (*)
+  Div     -> div
+
+binOpSym :: BinaryOp -> String
+binOpSym op = case op of
+  Plus    -> "+"
+  Minus   -> "-"
+  Times   -> "*"
+  Div     -> "/"

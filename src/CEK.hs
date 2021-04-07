@@ -71,7 +71,7 @@ destroy v k = case k of
             FBinaryOp1 op e t2            -> search t2 e (FBinaryOp2 op v:ks)
             FBinaryOp2 op v1              -> let VNat n1 = v1
                                                  VNat n2 = v
-                                             in destroy (VNat $ decodeOP op n1 n2) ks
+                                             in destroy (VNat $ binOpDef op n1 n2) ks
             FIfz e t1 t2                  -> let VNat n = v
                                              in if n == 0
                                                  then search t1 e ks
@@ -79,6 +79,3 @@ destroy v k = case k of
             FApp e t                      -> search t e (FClosure v : ks)
             FClosure (CFun e _ _ t)       -> search t (v : e) ks
             FClosure c@(CFix e _ _ _ _ t) -> search t (v : c : e) ks
-    where decodeOP op = case op of
-            Plus  -> (+)
-            Minus -> \a -> \b -> max 0 (a-b)

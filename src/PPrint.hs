@@ -77,8 +77,7 @@ unary2doc Succ = text "succ"
 unary2doc Pred = text "pred"
 
 binary2doc :: BinaryOp -> Doc
-binary2doc Plus = text "+"
-binary2doc Minus = text "-"
+binary2doc = text . binOpSym
 
 collectApp :: NTerm -> (NTerm, [NTerm])
 collectApp t = go [] t where
