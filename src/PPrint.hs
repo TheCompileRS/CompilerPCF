@@ -50,10 +50,13 @@ openAll (Fix p f fty x xty t) =
 openAll (IfZ p c t e) = IfZ p (openAll c) (openAll t) (openAll e)
 openAll (UnaryOp i o t) = UnaryOp i o (openAll t)
 openAll (BinaryOp i o t1 t2) = BinaryOp i o (openAll t1) (openAll t2)
+openAll (Let i x xt t1 t2) = 
+    let ([x'], t2') = openRename [x] t2 in
+    Let i x' xt (openAll t1) (openAll t2') 
 
 -- | Pretty printer de nombres (Doc)
 name2doc :: Name -> Doc
-name2doc n = text n
+name2doc = text
 
 -- |  Pretty printer de nombres (String)
 ppName :: Name -> String
@@ -88,11 +91,9 @@ parenIf :: Bool -> Doc -> Doc
 parenIf True = parens
 parenIf _ = id
 
--- t2doc at t :: Doc
--- at: debe ser un átomo
 -- | Pretty printing de términos (Doc)
-t2doc :: Bool     -- Debe ser un átomo? 
-      -> NTerm    -- término a mostrar
+t2doc :: Bool     -- ^ Debe ser un átomo? 
+      -> NTerm    -- ^ término a mostrar
       -> Doc
 -- Uncomment to use the Show instance for STerm
 {- t2doc at x = text (show x) -}
@@ -102,7 +103,7 @@ t2doc at (Lam _ v ty t) =
   parenIf at $
   sep [sep [text "fun", parens (sep [name2doc v,text ":",ty2doc ty]), text "->"], nest 2 (t2doc False t)]
 
-t2doc at t@(App _ _ _) =
+t2doc at t@App {} =
   let (h, ts) = collectApp t in
   parenIf at $
   t2doc True h <+> sep (map (t2doc True) ts)
@@ -126,6 +127,12 @@ t2doc at (UnaryOp _ o t) =
 t2doc at (BinaryOp _ o t1 t2) =
   parenIf at $
   t2doc True t1 <+> binary2doc o <+> t2doc True t2
+
+t2doc at (Let _ x xt t1 t2) =
+  parenIf at $
+  sep [ sep [ text "let", binding2doc (x, xt), text "=", t2doc False t1 ]
+      , sep [ text "in", t2doc False t2 ]
+      ]
 
 binding2doc :: (Name, Ty) -> Doc
 binding2doc (x, ty) =

@@ -52,11 +52,11 @@ search term e k = case term of
                                case mx of
                                  Just y  -> search y e k
                                  Nothing -> failPosPCF i $ "Variable " ++ x ++ " no declarada." 
-        V _ (Bound n)    -> destroy (e !! n) k
-        Const _ (CNat n) -> destroy (VNat n) k
-        Lam _ x xt t      -> destroy (CFun e x xt t) k
+        V _ (Bound n)      -> destroy (e !! n) k
+        Const _ (CNat n)   -> destroy (VNat n) k
+        Lam _ x xt t       -> destroy (CFun e x xt t) k
         Fix _ f ft x xt t  -> destroy (CFix e f ft x xt t) k
-        Let i x xt t1 t2 -> search (App i (Lam i x xt t2) t1) e k
+        Let i x xt t1 t2   -> search (App i (Lam i x xt t2) t1) e k
 
 -- | 'destroy' Ejecuta una fase de reducción de la máquina CEK, sobre un valor
 destroy :: MonadPCF m => Val -> Kont -> m Val
@@ -79,3 +79,4 @@ destroy v k = case k of
             FApp e t                      -> search t e (FClosure v : ks)
             FClosure (CFun e _ _ t)       -> search t (v : e) ks
             FClosure c@(CFix e _ _ _ _ t) -> search t (v : c : e) ks
+            FClosure _                    -> abort "Error de tipo en runtime!"
