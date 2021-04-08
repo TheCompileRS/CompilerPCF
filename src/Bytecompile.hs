@@ -2,7 +2,7 @@
 {-|
 Module      : Bytecompile
 Description : Compila a bytecode. Ejecuta bytecode.
-Copyright   : (c) Roman Castellarin, Sebastián Zimmermann, Mauro Jaskelioff, Guido Martínez, 2020.
+Copyright   : (c) Román Castellarin, Sebastián Zimmermann, Mauro Jaskelioff, Guido Martínez, 2020.
 License     : GPL-3
 Stability   : experimental
 

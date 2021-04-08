@@ -1,7 +1,7 @@
 {-|
 Module      : InstSel
 Description : Compilación a LLVM
-Copyright   : (c) Mauro Jaskelioff, Guido Martínez, Roman Castellarin, Sebastián Zimmermann 2021.
+Copyright   : (c) Mauro Jaskelioff, Guido Martínez, Román Castellarin, Sebastián Zimmermann 2021.
 License     : GPL-3
 Stability   : experimental
 -}
@@ -191,11 +191,41 @@ cgExpr (BinOp Lang.Minus v1 v2) = do
                                (LocalReference integer r'64) []]
   return (IntToPtr (LocalReference integer r'') ptr [])
 
-cgExpr (UnOp Lang.Succ v) = do
-  cgExpr (BinOp Lang.Plus v (C 1)) -- trucho
+cgExpr (BinOp Lang.Times v1 v2) = do
+  v1 <- cgV v1
+  v2 <- cgV v2
+  vf1 <- freshName
+  vf2 <- freshName
+  r <- freshName
+  tell [vf1 := PtrToInt v1 integer []]
+  tell [vf2 := PtrToInt v2 integer []]
+  tell [r := Mul False False
+               (LocalReference integer vf1)
+               (LocalReference integer vf2)
+               []]
+  return (IntToPtr (LocalReference integer r) ptr [])
 
-cgExpr (UnOp Lang.Pred v) = do
-  cgExpr (BinOp Lang.Minus v (C 1)) -- trucho
+cgExpr (BinOp Lang.Div v1 v2) = do
+  v1 <- cgV v1
+  v2 <- cgV v2
+  vf1 <- freshName
+  vf2 <- freshName
+  r <- freshName
+  tell [vf1 := PtrToInt v1 integer []]
+  tell [vf2 := PtrToInt v2 integer []]
+  tell [r := UDiv False
+               (LocalReference integer vf1)
+               (LocalReference integer vf2)
+               []]
+  return (IntToPtr (LocalReference integer r) ptr [])
+
+cgExpr (UnOp _ _) = undefined -- no hay mas unary ops
+
+-- cgExpr (UnOp Lang.Succ v) = do
+--   cgExpr (BinOp Lang.Plus v (C 1)) -- trucho
+
+-- cgExpr (UnOp Lang.Pred v) = do
+--   cgExpr (BinOp Lang.Minus v (C 1)) -- trucho
 
 cgExpr (CIR.Phi brs) = do
   args <- mapM (\(loc, v) -> do op <- cgV v

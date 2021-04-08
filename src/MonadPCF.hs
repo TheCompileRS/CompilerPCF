@@ -1,11 +1,11 @@
 {-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE TypeSynonymInstances #-}
+
 {-# LANGUAGE FlexibleContexts #-}
 
 {-|
 Module      : MonadPCF
 Description : Mónada con soporte para estado, errores, e IO.
-Copyright   : (c) Mauro Jaskelioff, Guido Martínez, Roman Castellarin, Sebastián Zimmermann 2020.
+Copyright   : (c) Mauro Jaskelioff, Guido Martínez, Román Castellarin, Sebastián Zimmermann 2020.
 License     : GPL-3
 Stability   : experimental
 
@@ -61,7 +61,7 @@ printPCF = liftIO . putStrLn
 
 addDecl :: MonadPCF m => Decl Ty Term -> m ()
 addDecl d = modify (\s -> s { glb = d : glb s })
-  
+
 addTy :: MonadPCF m => Name -> Ty -> m ()
 addTy n ty = modify (\s -> s { tyEnv = (n,ty) : tyEnv s })
 
@@ -95,8 +95,8 @@ failPCF :: MonadPCF m => String -> m a
 failPCF = failPosPCF NoPos
 
 catchErrors  :: MonadPCF m => m a -> m (Maybe a)
-catchErrors c = catchError (Just <$> c) 
-                           (\e -> liftIO $ hPutStrLn stderr (show e) 
+catchErrors c = catchError (Just <$> c)
+                           (\e -> liftIO $ hPutStrLn stderr (show e)
                               >> return Nothing)
 
 ----

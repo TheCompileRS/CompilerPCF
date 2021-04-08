@@ -1,7 +1,7 @@
 {-|
 Module      : Global
 Description : Define el estado global del compilador
-Copyright   : (c) Mauro Jaskelioff, Guido Martínez, Roman Castellarin, Sebastián Zimmermann 2020.
+Copyright   : (c) Mauro Jaskelioff, Guido Martínez, Román Castellarin, Sebastián Zimmermann 2020.
 License     : GPL-3
 Stability   : experimental
 

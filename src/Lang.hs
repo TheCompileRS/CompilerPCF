@@ -1,10 +1,10 @@
 {-# LANGUAGE DeriveTraversable #-}
-{-# LANGUAGE DeriveFunctor #-}
+
 
 {-|
 Module      : Lang
 Description : AST de términos, declaraciones y tipos
-Copyright   : (c) Mauro Jaskelioff, Guido Martínez, Roman Castellarin, Sebastián Zimmermann 2020.
+Copyright   : (c) Mauro Jaskelioff, Guido Martínez, Román Castellarin, Sebastián Zimmermann 2020.
 License     : GPL-3
 Stability   : experimental
 
@@ -24,14 +24,14 @@ import Data.List (nub)
 type Name = String
 
 -- | AST de tipos
-data Ty = 
-      NatTy 
+data Ty =
+      NatTy
     | FunTy Ty Ty
     deriving (Show,Eq)
 
 -- | AST de tipos azucarados
-data STy = 
-      SNatTy 
+data STy =
+      SNatTy
     | SFunTy STy STy
     | SSynTy Name
     deriving (Show,Eq)
@@ -42,7 +42,10 @@ data Const = CNat Int
 data UnaryOp = Succ | Pred
   deriving Show
 
-data BinaryOp = Plus | Minus
+data BinaryOp = Plus
+              | Minus
+              | Times
+              | Div
   deriving Show
 
 type MultiBinder = [([Name], STy)]
@@ -83,7 +86,7 @@ type STerm = STm Pos       -- ^ 'STm' tiene 'Name's como variables ligadas y lib
 --   - info es información extra que puede llevar cada nodo. 
 --       Por ahora solo la usamos para guardar posiciones en el código fuente.
 --   - var es el tipo de la variables. Es 'Name' para fully named y 'Var' para locally closed. 
-data Tm info ty var = 
+data Tm info ty var =
     V info var
   | Const info Const
   | Lam info Name ty (Tm info ty var)
@@ -98,7 +101,7 @@ data Tm info ty var =
 type NTerm = Tm Pos Ty Name   -- ^ 'Tm' tiene 'Name's como variables ligadas y libres, guarda posición
 type Term = Tm Pos Ty Var     -- ^ 'Tm' con índices de De Bruijn como variables ligadas, different type of variables, guarda posición
 
-data Var = 
+data Var =
     Bound !Int
   | Free Name
   deriving Show
@@ -117,8 +120,8 @@ getInfo (IfZ i _ _ _) = i
 
 -- | Obtiene las variables libres de un término.
 freeVars  :: Tm info ty Var -> [Name]
-freeVars t = nub $ freeVars' t
-  where 
+freeVars term = nub $ freeVars' term
+  where
     freeVars'  (V _ (Free v))        = [v]
     freeVars'  (V _ _)               = []
     freeVars'  (Lam _ _ _ t)         = freeVars' t
@@ -129,3 +132,17 @@ freeVars t = nub $ freeVars' t
     freeVars'  (Fix _ _ _ _ _ t)     = freeVars' t
     freeVars'  (IfZ _ c t e)         = freeVars' c ++ freeVars' t ++ freeVars' e
     freeVars'  (Const _ _)           = []
+
+binOpDef :: BinaryOp -> (Int -> Int -> Int)
+binOpDef op = case op of
+  Plus    -> (+)
+  Minus   -> \ a b -> max 0 (a - b)
+  Times   -> (*)
+  Div     -> div
+
+binOpSym :: BinaryOp -> String
+binOpSym op = case op of
+  Plus    -> "+"
+  Minus   -> "-"
+  Times   -> "*"
+  Div     -> "/"
