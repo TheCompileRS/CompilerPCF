@@ -26,7 +26,7 @@ data Inst =
 
 data Expr =
     BinOp BinaryOp Val Val
-  | UnOp UnaryOp Val
+  | UnOp UnaryOp Val  -- UnaryOp inactive, wont be used
   | Phi [(Loc, Val)]
   | Call Val [Val]
   | MkClosure Loc [Val]

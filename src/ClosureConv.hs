@@ -67,7 +67,8 @@ closureConvert term = case term of
     App _ f x           -> do f' <- closureConvert f
                               x' <- closureConvert x
                               return $ IrCall (IrAccess f' 0) [f', x']
-    UnaryOp {}          -> error "unary operators should have been translated to binary"
+    -- UnaryOp inactive
+    -- UnaryOp {}          -> error "unary operators should have been translated to binary"
     BinaryOp _ op t1 t2 -> do t1' <- closureConvert t1
                               t2' <- closureConvert t2
                               return $ IrBinaryOp op t1' t2'

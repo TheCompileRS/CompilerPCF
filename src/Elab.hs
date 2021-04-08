@@ -78,7 +78,7 @@ desugarTerm term = case term of
   where desugarUnary i op t = case op of
             Succ  -> BinaryOp i Plus  t (Const i (CNat 1))
             Pred  -> BinaryOp i Minus t (Const i (CNat 1))
-            --op    -> UnaryOp i op t
+            --op    -> UnaryOp i op t   -- UnaryOp inactive
 
 -- | 'resolveTypesTerm' quita el azucar sintáctico de los términos
 resolveTypesTerm :: MonadPCF m => Tm info STy var -> m (Tm info Ty var)
@@ -88,8 +88,9 @@ resolveTypesTerm term = case term of
     App i t1 t2 -> do   t1' <- resolveTypesTerm t1
                         t2' <- resolveTypesTerm t2
                         return $ App i t1' t2'
-    UnaryOp i op t -> do    t' <- resolveTypesTerm t
-                            return $ UnaryOp i op t'
+    -- UnaryOp inactive
+    -- UnaryOp i op t -> do    t' <- resolveTypesTerm t
+    --                         return $ UnaryOp i op t'
     BinaryOp i op t1 t2 -> do t1' <- resolveTypesTerm t1
                               t2' <- resolveTypesTerm t2    
                               return $ BinaryOp i op t1' t2'            
@@ -140,7 +141,7 @@ bruijnize (Lam p v ty t)        = Lam p v ty (close v (bruijnize t))
 bruijnize (App p h a)           = App p (bruijnize h) (bruijnize a)
 bruijnize (Fix p f fty x xty t) = Fix p f fty x xty (closeN [f, x] (bruijnize t))
 bruijnize (IfZ p c t e)         = IfZ p (bruijnize c) (bruijnize t) (bruijnize e)
-bruijnize (UnaryOp i o t)       = UnaryOp i o (bruijnize t)
+-- bruijnize (UnaryOp i o t)       = UnaryOp i o (bruijnize t)      -- UnaryOp inactive
 bruijnize (BinaryOp i o t1 t2)  = BinaryOp i o (bruijnize t1) (bruijnize t2)
 bruijnize (Let p x xt t1 t2)    = Let p x xt (bruijnize t1) (close x (bruijnize t2))
 

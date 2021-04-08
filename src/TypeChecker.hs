@@ -29,9 +29,12 @@ tc (V p (Free n)) bs = case lookup n bs of
                            Nothing -> failPosPCF p $ "Variable no declarada "++ppName n
                            Just ty -> return ty 
 tc (Const _ (CNat _)) _ = return NatTy
-tc (UnaryOp _ _ t) bs = do 
-      ty <- tc t bs
-      expect NatTy ty t
+
+-- UnaryOp inactive
+-- tc (UnaryOp _ _ t) bs = do 
+--       ty <- tc t bs
+--       expect NatTy ty t
+
 -- shortcut which will break silently if we extend the language
 tc (BinaryOp _ _ t1 t2) bs = do 
       ty1 <- tc t1 bs

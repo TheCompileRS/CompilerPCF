@@ -111,8 +111,9 @@ bc term = case term of
     App _ t1 t2         -> do p1 <- bc t1
                               p2 <- bc t2
                               return $ p1 ++ p2 ++ [CALL]
-    UnaryOp _ op t      -> do p <- bc t
-                              return $ p ++ [compileUnaryOp op]
+    -- UnaryOp inactive
+    -- UnaryOp _ op t      -> do p <- bc t
+    --                           return $ p ++ [compileUnaryOp op]
     BinaryOp _ op t1 t2 -> do p1 <- bc t1
                               p2 <- bc t2
                               return $ p1 ++ p2 ++ [compileBinaryOp op]
@@ -132,13 +133,14 @@ bc term = case term of
       Succ -> SUCC
       Pred -> PRED
     compileBinaryOp op = case op of
-      Plus -> PLUS
+      Plus  -> PLUS
       Minus -> MINUS
+      _     -> error "unimplemented binop"
 
 bytecompileModule :: MonadPCF m => [Decl Ty Term] -> m Bytecode
 bytecompileModule prog = do
     let orto = foldr letter lastSymbol prog
-    code <- bc $ orto 
+    code <- bc orto 
     printPCF $ show code
     return $ code ++ [PRINT, STOP]
  where 
