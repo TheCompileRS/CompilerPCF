@@ -1,5 +1,5 @@
 # FINAL STEPS
-    - main should show parse errors
+    - ~main should show parse errors~
     - ~Opt: Add * and / binary operators~
     - *Opt: Erase Succ and Pred* 
     - Compilation flags (turn on off intermediate step output and ass optimizer round count )

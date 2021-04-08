@@ -89,7 +89,7 @@ compileClosure file = do
                          hPutStr stderr ("No se pudo abrir el archivo " ++ filename ++ ": " ++ err ++"\n")
                          return "")
     sdecls <- parseIO filename program x
-    mapM_ handleDecl sdecls -- type checking
+    catchErrors $ mapM_ handleDecl sdecls -- type checking
     decls' <- catMaybes <$> mapM elabDecl sdecls
     printPCF $ ("\nORIGINALLY\n" ++) $ intercalate "\n" $ show <$> decls'
     -- HACEMOS N=20 RONDAS AHRE
