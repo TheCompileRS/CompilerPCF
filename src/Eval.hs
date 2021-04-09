@@ -35,17 +35,17 @@ eval (App _ l r) = do
            eval (substN [ff, n] t)
         _ ->
            abort("Error de tipo en runtime " ++ show (le, re))
-
-eval (UnaryOp p Succ t) = do
-        te <- eval t
-        case te of
-          Const _ (CNat n) -> return (Const p (CNat (n+1)))
-          _                -> abort "Error de tipo en runtime!"
-eval (UnaryOp p Pred t) = do
-        te <- eval t
-        case te of
-          Const _ (CNat n) -> return (Const p (CNat (max 0 (n-1))))
-          _                -> abort "Error de tipo en runtime!"
+-- UnaryOp inactive
+-- eval (UnaryOp p Succ t) = do
+--         te <- eval t
+--         case te of
+--           Const _ (CNat n) -> return (Const p (CNat (n+1)))
+--           _                -> abort "Error de tipo en runtime!"
+-- eval (UnaryOp p Pred t) = do
+--         te <- eval t
+--         case te of
+--           Const _ (CNat n) -> return (Const p (CNat (max 0 (n-1))))
+--           _                -> abort "Error de tipo en runtime!"
 
 eval (BinaryOp p op t1 t2) = do
                      te1 <- eval t1

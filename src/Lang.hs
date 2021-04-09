@@ -91,7 +91,7 @@ data Tm info ty var =
   | Const info Const
   | Lam info Name ty (Tm info ty var)
   | App info (Tm info ty var) (Tm info ty var)
-  | UnaryOp info UnaryOp (Tm info ty var)
+  --- | UnaryOp info UnaryOp (Tm info ty var)   -- UnaryOp inactive
   | BinaryOp info BinaryOp (Tm info ty var) (Tm info ty var)
   | Fix info Name ty Name ty (Tm info ty var)
   | IfZ info (Tm info ty var) (Tm info ty var) (Tm info ty var)
@@ -112,7 +112,7 @@ getInfo (V i _) = i
 getInfo (Const i _) = i
 getInfo (Lam i _ _ _) = i
 getInfo (App i _ _ ) = i
-getInfo (UnaryOp i _ _) = i
+--getInfo (UnaryOp i _ _) = i   -- UnaryOp inactive
 getInfo (BinaryOp i _ _ _) = i
 getInfo (Let i _ _ _ _ ) = i
 getInfo (Fix i _ _ _ _ _) = i
@@ -126,7 +126,7 @@ freeVars term = nub $ freeVars' term
     freeVars'  (V _ _)               = []
     freeVars'  (Lam _ _ _ t)         = freeVars' t
     freeVars'  (App _ l r)           = freeVars' l ++ freeVars' r
-    freeVars'  (UnaryOp _ _ t)       = freeVars' t
+    -- freeVars'  (UnaryOp _ _ t)       = freeVars' t   -- UnaryOp inactive
     freeVars'  (BinaryOp _ _ t1 t2)  = freeVars' t1 ++ freeVars' t2
     freeVars'  (Let _ _ _ t1 t2)     = freeVars' t1 ++ freeVars' t2
     freeVars'  (Fix _ _ _ _ _ t)     = freeVars' t
