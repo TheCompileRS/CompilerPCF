@@ -24,7 +24,7 @@ import Compilers (parseIO, compileFile, compileFiles, handleDecl)
 import Parse (declOrTm, tm)
 import CEK (valToTerm, search)
 import TypeChecker (tc)
-import Data.Maybe (fromMaybe)
+import Data.Maybe (fromMaybe, isNothing)
 
 
 
@@ -33,7 +33,9 @@ prompt = "PCF> "
 
 interpreter :: (MonadPCF m, MonadMask m) => [String] -> InputT m ()
 interpreter args = do
-        lift . catchErrors $ compileFiles args
+        r <- lift . catchErrors $ compileFiles args
+        when (isNothing r) $ liftIO $ 
+          putStrLn "Lectura de archivos abortada..."
         s <- lift get
         when (inter s) $ liftIO $ putStrLn
           (  "Entorno interactivo para PCF1.\n"

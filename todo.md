@@ -5,6 +5,8 @@
     - Compilation flags (turn on off intermediate step output and ass optimizer round count )
     - ~factor out interactive mode from main.hs~ 
     - general documentation of main.hs
+    - print something cuter than 
+        printPCF $ ("CODE\n" ++) $ intercalate "\n" $ show <$> stuff
     - Testing?
 
 
