@@ -20,7 +20,7 @@ import Data.Char (isSpace)
 import Lang
 import PPrint (ppTy, pp)
 import Elab (elab)
-import Compilers (parseIO, compileFile, compileFiles, handleDecl)
+import Compilers (parseIO, loadFile, loadFiles, handleDecl)
 import Parse (declOrTm, tm)
 import CEK (valToTerm, search)
 import TypeChecker (tc)
@@ -33,7 +33,7 @@ prompt = "PCF> "
 
 interpreter :: (MonadPCF m, MonadMask m) => [String] -> InputT m ()
 interpreter args = do
-        r <- lift . catchErrors $ compileFiles args
+        r <- lift . catchErrors $ loadFiles False args
         when (isNothing r) $ liftIO $ 
           putStrLn "Lectura de archivos abortada..."
         s <- lift get
@@ -100,8 +100,8 @@ helpTxt :: [InteractiveCommand] -> String
 helpTxt cs
   =  "Lista de comandos:  Cualquier comando puede ser abreviado a :c donde\n" ++
      "c es el primer caracter del nombre completo.\n\n" ++
-     "<expr>                  evaluar la expresión\n" ++
-     "let <var> = <expr>      definir una variable\n" ++
+     "<expr>                           evaluar la expresión\n" ++
+     "let <var> : <type> = <expr>      definir una variable\n" ++
      unlines (map (\ (Cmd c a _ d) ->
                    let  ct = intercalate ", " (map (++ if null a then "" else " " ++ a) c)
                    in   ct ++ replicate ((24 - length ct) `max` 2) ' ' ++ d) cs)
@@ -120,7 +120,7 @@ handleCommand cmd = do
        Compile c ->
                   do  case c of
                           CompileInteractive e -> compilePhrase e
-                          CompileFile f        -> put (s {lfile=f}) >> compileFile f
+                          CompileFile f        -> put (s {lfile=f}) >> loadFile False f
                       return True
        Print e   -> printPhrase e >> return True
        Type e    -> typeCheckPhrase e >> return True

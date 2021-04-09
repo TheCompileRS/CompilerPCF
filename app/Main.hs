@@ -16,7 +16,7 @@ import MonadPCF
 import Options.Applicative
 
 import Interpreter (interpreter)
-import Compilers (bcCompileFiles, bcRunFile, compileClosures, CompilationOptions(..), compilation)
+import Compilers (bcCompileFiles, bcRunFile, compilation, CompilationOptions(..))
 
 -- | Modos de ejecución
 data Mode = Interactive
@@ -42,25 +42,23 @@ parseArgs = (,) <$> parseMode <*> many (argument str (metavar "FILES..."))
 
 -- | Main
 main :: IO ()
-main = execParser opts >>= void . go
+main = execParser opts >>= go
   where
     opts = info (parseArgs <**> helper)
                 ( fullDesc
                   <> progDesc "Compilador de PCF"
                   <> header "Compilador de PCF de la materia Compiladores 2020" )
 
-    --go :: (Mode,[FilePath]) -> IO ()
-    go (Interactive,files) = runPCF (runInputT defaultSettings (interpreter files))                         
+    go :: (Mode,[FilePath]) -> IO ()
+    go (Interactive,files) = void $ runPCF (runInputT defaultSettings (interpreter files))                         
     go (Typecheck, files) = undefined
-    go (Bytecompile, files) = runPCF $ bcCompileFiles files
-    go (Run,[file]) = runPCF $ bcRunFile file
-    go (ClosureConv,files) = runPCF $ compileClosures files
-    go (Compilation c, files) = runPCF $ compilation c files
-    go _ = runPCF $ return ()
+    go (Bytecompile, files) = void . runPCF $ bcCompileFiles files
+    go (Run,[file]) = void . runPCF $ bcRunFile file
+    go (ClosureConv,files) = undefined -- void. runPCF $ compileClosures files
+    go (Compilation c, files) = void. runPCF $ catchErrors (compilation c files)
+    go _ =  return ()
 
-
--- ------------------------------------------
-
+-- | Parser de opciones de compilación
 parseCompilation :: Parser CompilationOptions
 parseCompilation =  flag' CompilationOptions
          (short 'c' <> long "compile"   <> help "show parser base output")
@@ -69,5 +67,6 @@ parseCompilation =  flag' CompilationOptions
       <*> switch (long "show-optimized" <> help "show optimized output")
       <*> switch (long "show-closures"  <> help "show closures output")
       <*> switch (long "show-canonized" <> help "show canonized output")
+      <*> switch (long "show-ir"        <> help "show intermediate repr. output")
       <*> switch (long "show-llvm"      <> help "show LLVM output")
       <*> option auto (long "n-opt" <> value 20 <> help "n. of optimization rounds")

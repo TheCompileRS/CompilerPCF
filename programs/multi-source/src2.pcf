@@ -1,0 +1,2 @@
+# source 2
+let y : Nat = x + let x : Nat = 10 in x

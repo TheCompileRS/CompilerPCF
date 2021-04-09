@@ -1,5 +1,3 @@
-{-# LANGUAGE ViewPatterns #-}
-
 {-|
 Module      : Compilers
 Description : Scripts de compilacion de PCF.
@@ -27,7 +25,6 @@ import qualified DeadCode (optimize)
 import qualified ConstantFolding (optimize)
 import qualified InlineExpansion (optimize)
 import qualified Data.Text.Lazy.IO as TIO
---import Data.Text.Lazy (putStrLn)
 import Data.Maybe (catMaybes)
 import Data.List (intercalate, dropWhileEnd)
 import CanonConv (runCanon)
@@ -37,24 +34,30 @@ import LLVM.Pretty (ppllvm)
 import System.Process (system)
 import Bytecompile (bcRead, runBC, bytecompileModule, bcWrite)
 
+-- | Compilation Options
 data CompilationOptions = CompilationOptions {
       showBase :: Bool,
       showDesugar :: Bool,
       showOptimized :: Bool,
       showClosures :: Bool,
       showCanonized :: Bool,
+      showIR :: Bool,
       showLLVM :: Bool,
       nOpt :: Int
 }
 
+-- | Run a parser, raising exceptions in case of error
 parseIO ::  MonadPCF m => String -> P a -> String -> m a
 parseIO filename p x = case runP p x filename of
                   Left e  -> throwError (ParseErr e)
                   Right r -> return r  
 
+-- | Remove whitespace from string ends
 trim :: String -> String 
 trim = dropWhileEnd isSpace . dropWhile isSpace
 
+-- | Read contents of file
+-- nothrow: in case of error prints message and returns empty string
 openFilePCF :: MonadPCF m => String -> m String
 openFilePCF filename = do
     printPCF $ "Abriendo " ++ filename ++ "..."
@@ -63,112 +66,79 @@ openFilePCF filename = do
                        hPutStr stderr $ "No se pudo abrir el archivo " ++ filename ++ ": " ++ err ++ "\n"
                        return "")
 
-
-compileFiles :: MonadPCF m => [String] -> m ()
-compileFiles = mapM_ $ \filename -> do
+-- | Load list of files into memory
+loadFiles :: MonadPCF m => Bool -> [String] -> m ()
+loadFiles showCode = mapM_ $ \filename -> do
         modify (\s -> s { lfile = filename, inter = False })
-        compileFile filename
+        loadFile showCode filename
 
-compileFile ::  MonadPCF m => String -> m ()
-compileFile filename = do
-    x <- openFilePCF filename
-    decls <- parseIO filename program x
+-- | Load file into memory
+loadFile ::  MonadPCF m => Bool -> String -> m ()
+loadFile showCode filename = do
+    -- read contents
+    contents <- openFilePCF filename
+    decls <- parseIO filename program contents
+    -- show base code
+    when showCode $ do
+        -- TODO should we print this or pretty print?
+        printPCF $ "\nBASE CODE " ++ filename ++ "\n" 
+        printPCF $ intercalate "\n" $ show <$> decls
+    -- typechecking and elaboration
     mapM_ handleDecl decls
 
+-- | Process declaration and keep it in memory 
 handleDecl ::  MonadPCF m => SDecl STerm -> m ()
 handleDecl decl = do
-  decl' <- elabDecl decl
-  case decl' of
-    Nothing -> return ()
-    Just (Decl p x ty tt) -> do
-        tcDecl (Decl p x ty tt)
-        addDecl (Decl p x ty tt)
+  d_elab <- elabDecl decl -- elaboration
+  forM_ d_elab $ \d -> do
+      tcDecl d   -- typechecking
+      addDecl d  -- storing
 
-----------------------------------------
---          INDEPENDENT CODE          --
-----------------------------------------
-
--- GENERAL COMPILATION
-
-compileClosures :: MonadPCF m => [String] -> m ()
-compileClosures []     = return ()
-compileClosures (x:xs) = do
-        modify (\s -> s { lfile = x, inter = False })
-        compileClosure x
-        compileClosures xs
-
-compileClosure :: MonadPCF m => String -> m ()
-compileClosure file = do
-    let filename = trim file
-    x <- openFilePCF filename
-    sdecls <- parseIO filename program x
-    catchErrors $ mapM_ handleDecl sdecls -- type checking
-    decls' <- catMaybes <$> mapM elabDecl sdecls
-    printPCF $ ("\nORIGINALLY\n" ++) $ intercalate "\n" $ show <$> decls'
-    -- HACEMOS N=20 RONDAS AHRE
-    let optimizer = InlineExpansion.optimize . DeadCode.optimize . ConstantFolding.optimize
-    let decls = iterate optimizer decls' !! 20
-    printPCF $ ("\nOPTIMIZED\n" ++) $ intercalate "\n" $ show <$> decls
-    printPCF $ ("\nCLOSURE CONVERSIONS\n" ++) $ intercalate "\n" $ show <$> runCC decls
-    let canonprog = runCanon. runCC $ decls
-    printPCF $ "\nCANONIZED PROGRAM\n" ++ show canonprog
-    let irdecls = codegen canonprog
-    liftIO $ TIO.writeFile "output.ll" (ppllvm irdecls)
-    let commandline = "clang -Wno-override-module output.ll src/runtime.c -lgc -o prog"
-    liftIO $ system commandline
-    return ()
-
--- --------------------------------------------
-
+-- | General compilation
 compilation :: MonadPCF m => CompilationOptions -> [String] -> m ()
 compilation opts files = do
-    compileFiles $ trim <$> files
-
-    -- read file
-    x <- openFilePCF filename
-    ds_base <- parseIO filename program x
-    -- show base
-    when (showBase opts) $
-        -- TODO should we print this or pretty print?
-        printPCF $ ("BASE CODE\n" ++) $ intercalate "\n" $ show <$> ds_base
-    -- type checking
-    catchErrors $ mapM_ handleDecl ds_base 
-    -- elaboration
-    ds_elab <- catMaybes <$> mapM elabDecl ds_base
-    -- show desugar
+    -- read files
+    loadFiles (showBase opts) $ trim <$> files
+    -- retreive processed declarations
+    ds_elab <- reverse . glb <$> get
+    -- show desugared code
     when (showDesugar opts) $
-        printPCF $ ("DESUGARED CODE\n" ++) $ intercalate "\n" $ show <$> ds_elab
+        printPCF $ ("\nDESUGARED CODE\n" ++) $ intercalate "\n" $ show <$> ds_elab
     -- optimization
-    let optimizer = InlineExpansion.optimize . DeadCode.optimize . ConstantFolding.optimize
+    let optimizer = InlineExpansion.optimize 
+                  . DeadCode.optimize 
+                  . ConstantFolding.optimize
     let ds_opt = iterate optimizer ds_elab !! nOpt opts
-    -- show optimized
+    -- show optimized code
     when (showOptimized opts) $
-        printPCF $ ("OPTIMIZED CODE\n" ++) $ intercalate "\n" $ show <$> ds_opt
+        printPCF $ ("\nOPTIMIZED CODE\n" ++) $ intercalate "\n" $ show <$> ds_opt
     -- closure conversion
     let ds_closure = runCC ds_opt
     -- show closures
     when (showClosures opts) $
-        printPCF $ ("CLOSURE CONVERSIONS\n" ++) $ intercalate "\n" $ show <$> ds_closure
+        printPCF $ ("\nCLOSURE CONVERSIONS\n" ++) $ intercalate "\n" $ show <$> ds_closure
     -- canonization
     let ds_canon = runCanon ds_closure
     -- show closures
     when (showCanonized opts) $
-        printPCF $ "CANONIZED CODE\n" ++ show ds_canon
+        printPCF $ "\nCANONIZED CODE\n" ++ show ds_canon
     -- intermediate representation
     let ds_ir = codegen ds_canon
     -- show IR
-        -- <TODO>
+    when (showIR opts) $
+        printPCF $ "\nINTERMEDIA REPRESENTATION\n" ++ show ds_ir
     -- LLVM translation
     let ds_llvm = ppllvm ds_ir
     liftIO $ TIO.writeFile "output.ll" ds_llvm
     -- show LLVM
     when (showLLVM opts) $
-        printPCF $ "LLVM PROGRAM\n" ++ (read . show) ds_llvm
+        printPCF $ "\nLLVM PROGRAM\n" ++ (read . show) ds_llvm
     -- LLVM compilation
     let commandline = "clang -Wno-override-module output.ll src/runtime.c -lgc -o prog"
     liftIO $ system commandline
+    printPCF "Done !!"
     return ()
-
+ 
 -- BYTECODE COMPILATION
 
 bcRunFile :: MonadPCF m => String -> m ()
