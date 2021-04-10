@@ -21,6 +21,24 @@ stack install
 
 ## Usage:
 
+Generally
+```
+compiler-exe [(-t|--typecheck) 
+            | (-w|--bytecompile) 
+            | (-r|--run) 
+            | --cc 
+            | (-c|--compile) 
+                      [--show-base] 
+                      [--show-desugar] 
+                      [--show-optimized] 
+                      [--show-closures] 
+                      [--show-canonized] 
+                      [--show-llvm] 
+                      [--n-opt ARG] 
+            | (-i|--interactive)] 
+        [FILES...]
+```
+
 You can run with 
 
 ```code

@@ -2,9 +2,13 @@
     - ~main should show parse errors~
     - ~Opt: Add * and / binary operators~
     - *Opt: Erase Succ and Pred* 
-    - Compilation flags (turn on off intermediate step output and ass optimizer round count )
+    - ~Compilation flags~
     - ~factor out interactive mode from main.hs~ 
     - general documentation of main.hs
+    - print something cuter than 
+        printPCF $ ("CODE\n" ++) $ intercalate "\n" $ show <$> stuff
+    - why is lfile there at all?
+    - mutual recursion is forbidden, update sample programs
     - Testing?
 
 
