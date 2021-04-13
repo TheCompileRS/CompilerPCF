@@ -3,8 +3,11 @@ let mod (x y: Nat): Nat = let c : Nat = x/y in x-c*y
 
 let rec fact (n: Nat): Nat = ifz n then 1 else n * fact (n-1)
 
-# debe dar 15! = 1307674368000
-#let ans: Nat = fact 15
+# 15! = 1307674368000
+let a: Nat = fact 15
 
 # 15485174 mod 73 = 49
-let ans: Nat = mod 15485174 73
+let b: Nat = mod 15485174 73
+
+# ans = 1307674368049
+let ans: Nat = a+b

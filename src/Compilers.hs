@@ -94,6 +94,14 @@ handleDecl decl = do
       tcDecl d   -- typechecking
       addDecl d  -- storing
 
+typechecking :: MonadPCF m => [String] -> m ()
+typechecking files = do 
+    loadFiles False files
+    decls <- glb <$> get
+    when (null decls) $
+        failPCF "Sin declaraciones."
+    printPCF "El programa tipa correctamente."
+
 -- | General compilation
 compilation :: MonadPCF m => CompilationOptions -> [String] -> m ()
 compilation opts files = do
@@ -101,6 +109,8 @@ compilation opts files = do
     loadFiles (showBase opts) $ trim <$> files
     -- retreive processed declarations
     ds_elab <- reverse . glb <$> get
+    when (null ds_elab) $
+        failPCF "Sin declaraciones."
     -- show desugared code
     when (showDesugar opts) $
         printPCF $ ("\nDESUGARED CODE\n" ++) $ intercalate "\n" $ show <$> ds_elab
@@ -126,7 +136,7 @@ compilation opts files = do
     let ds_ir = codegen ds_canon
     -- show IR
     when (showIR opts) $
-        printPCF $ "\nINTERMEDIA REPRESENTATION\n" ++ show ds_ir
+        printPCF $ "\nINTERMEDIATE REPRESENTATION\n" ++ show ds_ir
     -- LLVM translation
     let ds_llvm = ppllvm ds_ir
     liftIO $ TIO.writeFile "output.ll" ds_llvm
@@ -136,14 +146,15 @@ compilation opts files = do
     -- LLVM compilation
     let commandline = "clang -Wno-override-module output.ll src/runtime.c -lgc -o prog"
     liftIO $ system commandline
-    printPCF "Done !!"
-    return ()
+    printPCF "Compilación exitosa!!"
  
 -- BYTECODE COMPILATION
 
-bcRunFile :: MonadPCF m => String -> m ()
-bcRunFile filename = do
-        file <- liftIO $ bcRead filename
+bcRunFile :: MonadPCF m => [String] -> m ()
+bcRunFile files = do
+        when (length files /= 1) $
+            failPCF "Debe especificarse exactamente 1 archivo."
+        file <- liftIO . bcRead . head $ files
         runBC file
 
 
