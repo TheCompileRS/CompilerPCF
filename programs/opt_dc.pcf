@@ -1,7 +1,23 @@
+# no necesaria
 let x : Nat = 5
+
+# no necesaria
+let y : Nat = 10
+
+# necesaria para g
+let z : Nat = 50
+
+# necesaria para f
 let v : Nat = 100
+
+# no necesaria
+let rec w (x: Nat): Nat = ifz x then 0 else z + w (x-1)
+
+# necesaria para f
+let g (x y : Nat) : Nat = x + y + z
+
+# necesaria para ans
 let f (x : Nat) : Nat = x + g v (x+x)
-let y : Nat = z + 1
-let g (x y : Nat) : Nat = x + y
-let z : Nat = y + 1
-let w : Nat = f 10
+
+# resultado
+let ans : Nat = f 10

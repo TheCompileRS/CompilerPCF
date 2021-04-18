@@ -9,7 +9,7 @@ Stability   : experimental
 
 module Errors where
 
-import Common (Pos)
+import Common (Pos (NoPos))
 import Text.Parsec.Error ( ParseError )
 
 -- Agregar más, y source positions
@@ -19,4 +19,5 @@ data Error =
 
 instance Show Error where
   show (ParseErr e) = show e
+  show (ErrPos NoPos s) = s
   show (ErrPos p s) = show p++" "++ s

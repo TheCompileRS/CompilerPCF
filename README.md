@@ -64,6 +64,18 @@ gcc bvm.c -o bvm
 ./bvm file.byte
 ```
 
+List of sample programs:
+| Program | What it tests |
+| --- | ----------- |
+| blank.pcf | Failure to compile empty programs |
+| multi-source/* | Ability to split programs among different sources |
+| fibonacci.pcf | Nontail recursion |
+| opt_cf.pcf | Constant Folding Optimization |
+| opt_dc.pcf | Dead Code Optimization |
+| opt_ie.pcf | Inline Expansion Optimization |
+| binops.pcf | Binary Operators precedence, 64-bit calculations |
+| PAIRS.PCF | COMPLETAR Declare type synonyms |
+
 ### License
 
 GNU General Public License v3.0

@@ -16,25 +16,22 @@ import MonadPCF
 import Options.Applicative
 
 import Interpreter (interpreter)
-import Compilers (bcCompileFiles, bcRunFile, compilation, CompilationOptions(..))
+import Compilers (bcCompileFiles, bcRunFile, compilation, CompilationOptions(..), typechecking)
 
 -- | Modos de ejecución
 data Mode = Interactive
           | Typecheck
           | Bytecompile
-          | Run
-          | ClosureConv
+          | Byterun
           | Compilation CompilationOptions
 
 -- | Parser de banderas
 parseMode :: Parser Mode
 parseMode = flag' Typecheck   (long "typecheck"   <> short 't' <> help "Solo chequear tipos")
-        <|> flag' Bytecompile (long "bytecompile" <> short 'w' <> help "Compilar a la BVM")
-        <|> flag' Run         (long "run"         <> short 'r' <> help "Ejecutar bytecode en la BVM")
-        <|> flag' ClosureConv (long "cc"                       <> help "Conversion de clausuras")
+        <|> flag' Bytecompile (long "bytecompile" <> short 'b' <> help "Compilar a la BVM")
+        <|> flag' Byterun     (long "run"         <> short 'r' <> help "Ejecutar bytecode en Haskell BVM")
+        <|> flag' Interactive (long "interactive" <> short 'i' <> help "Ejecutar en forma interactiva")
         <|> Compilation <$> parseCompilation
-        <|> flag  Interactive Interactive ( long "interactive" <> short 'i'
-                                           <> help "Ejecutar en forma interactiva" )
 
 -- | Parser de opciones general, consiste de un modo y una lista de archivos a procesar
 parseArgs :: Parser (Mode,[FilePath])
@@ -50,18 +47,16 @@ main = execParser opts >>= go
                   <> header "Compilador de PCF de la materia Compiladores 2020" )
 
     go :: (Mode,[FilePath]) -> IO ()
-    go (Interactive,files) = void $ runPCF (runInputT defaultSettings (interpreter files))                         
-    go (Typecheck, files) = undefined
-    go (Bytecompile, files) = void . runPCF $ bcCompileFiles files
-    go (Run,[file]) = void . runPCF $ bcRunFile file
-    go (ClosureConv,files) = undefined -- void. runPCF $ compileClosures files
-    go (Compilation c, files) = void. runPCF $ catchErrors (compilation c files)
-    go _ =  return ()
+    go (Interactive,files)    = void . runPCF $ runInputT defaultSettings (interpreter files)                         
+    go (Typecheck, files)     = void . runPCF $ catchErrors (typechecking files)
+    go (Bytecompile, files)   = void . runPCF $ bcCompileFiles files
+    go (Byterun, files)       = void . runPCF $ bcRunFile files
+    go (Compilation c, files) = void . runPCF $ catchErrors (compilation c files)
 
 -- | Parser de opciones de compilación
 parseCompilation :: Parser CompilationOptions
-parseCompilation =  flag' CompilationOptions
-         (short 'c' <> long "compile"   <> help "show parser base output")
+parseCompilation =  flag CompilationOptions CompilationOptions
+         (short 'c' <> long "compile"   <> help "compilacion completa")
       <*> switch (long "show-base"      <> help "show parser base output")
       <*> switch (long "show-desugar"   <> help "show desugared output")
       <*> switch (long "show-optimized" <> help "show optimized output")

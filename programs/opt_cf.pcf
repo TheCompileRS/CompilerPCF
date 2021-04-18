@@ -1,4 +1,7 @@
+# x = 5
 let x : Nat = 5
+
+# y = 7
 let y : Nat = ifz (5 - 10) 
               then ifz ifz 0 
                        then 5 
@@ -6,4 +9,6 @@ let y : Nat = ifz (5 - 10)
                    then 3 
                    else 7
                else 13
-let ans : Nat = 1 + 5 - 20 + 3 + (x+0)
+
+# ans = 15
+let ans : Nat = 1 + 5 - 20 + 3 + (x+0) + y
