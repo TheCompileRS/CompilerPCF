@@ -282,6 +282,10 @@ cgExpr (UnOp Lang.Head l) = do
                 (Right (global (mkName "pcf_head") headTy))
                 [(v, [])] [][]
 
+cgExpr (UnOp Lang.LNull l) = do
+  v <- cgV l
+  return $ BitCast v ptr [] -- no op
+
 cgExpr (UnOp _ _) = error "No definido" -- no hay mas unary ops
 
 -- cgExpr (UnOp Lang.Succ v) = do

@@ -32,7 +32,7 @@ lexer = Tok.makeTokenParser $
          commentLine    = "#",
          reservedNames = ["let", "fun", "fix", "then", "else",
                           "succ", "pred", "ifz", "Nat", "rec", "in", "type"],
-         reservedOpNames = ["->", ":", "=", "+", "-", "*", "/", ","],
+         reservedOpNames = ["->", ":", "=", "+", "-", "*", "/", ",", "?"],
          caseSensitive = True
         }
 
@@ -116,6 +116,7 @@ unaryOpName =
   <|> (reserved "pred" *> return Pred)
   <|> (reserved "head" *> return Head)
   <|> (reserved "tail" *> return Tail)
+  <|> (reservedOp "?"  *> return LNull)
 
 unaryOp :: P STerm
 unaryOp = do

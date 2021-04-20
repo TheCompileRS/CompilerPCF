@@ -83,6 +83,7 @@ unaryType op = case op of
   Pred -> NatTy 
   Head -> NatListTy 
   Tail -> NatListTy
+  LNull -> NatListTy 
 
 unaryRetType :: UnaryOp -> Ty
 unaryRetType op = case op of

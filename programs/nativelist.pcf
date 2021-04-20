@@ -1,7 +1,21 @@
-let merge (l1 l2 : [Nat]) : [Nat] = l1
+let rec merge (l1 l2: [Nat]): [Nat] = 
+    ifz ?l1 then l2 
+    else ifz ?l2 then l1 
+    else let h1 : Nat = head l1 in
+         let h2 : Nat = head l2 in
+         ifz h1 - h2 then h1 : merge (tail l1) l2 
+                     else h2 : merge l1 (tail l2)
 
+let rec evens (l: [Nat]): [Nat] =
+    ifz ?l then [] 
+           else let l2: [Nat] = tail l 
+                in head l : ifz ?l2 then [] else evens (tail l2)
 
-let x : [Nat] = tail [1, 2, 3, 4, 5]
-let y : Nat = head x
-let z : [Nat] = merge (y : 1 : tail (tail x)) []
+let rec sort (l: [Nat]): [Nat] = 
+    ifz ?l then l
+           else ifz ?(tail l) then l 
+                              else let l1 : [Nat] = evens l in
+                                   let l2 : [Nat] = evens (tail l) in
+                                   merge (sort l1) (sort l2)
 
+let ans : [Nat] = sort [8, 1, 3, 4, 6, 1, 9, 7, 5, 10, 1, 2, 0] 

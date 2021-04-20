@@ -42,7 +42,7 @@ data Const = CNat Int
            | CLNat [Int]
   deriving Show
 
-data UnaryOp = Succ | Pred | Head | Tail
+data UnaryOp = Succ | Pred | Head | Tail | LNull
   deriving Show
 
 data BinaryOp = Plus
@@ -130,7 +130,7 @@ freeVars term = nub $ freeVars' term
     freeVars'  (V _ _)               = []
     freeVars'  (Lam _ _ _ t)         = freeVars' t
     freeVars'  (App _ l r)           = freeVars' l ++ freeVars' r
-    -- freeVars'  (UnaryOp _ _ t)       = freeVars' t   -- UnaryOp inactive
+    freeVars'  (UnaryOp _ _ t)       = freeVars' t
     freeVars'  (BinaryOp _ _ t1 t2)  = freeVars' t1 ++ freeVars' t2
     freeVars'  (Let _ _ _ t1 t2)     = freeVars' t1 ++ freeVars' t2
     freeVars'  (Fix _ _ _ _ _ t)     = freeVars' t
