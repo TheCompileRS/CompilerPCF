@@ -24,6 +24,8 @@ import qualified LLVM.AST.Constant as C
 import qualified LLVM.AST.CallingConvention as CC
 import qualified LLVM.AST.IntegerPredicate as IP
 
+import Debug.Trace ( trace )
+
 i1 :: Type
 i1 = IntegerType 1
 
@@ -42,6 +44,12 @@ global nm ty = ConstantOperand $ C.GlobalReference ty nm
 
 ptrptr :: Type
 ptrptr = PointerType ptr (LLVM.AST.AddrSpace.AddrSpace 0)
+
+list :: Type
+list = StructureType False [ptr, lptr] 
+
+lptr :: Type
+lptr = PointerType (NamedTypeReference $ mkName "list") (LLVM.AST.AddrSpace.AddrSpace 0)
 
 -- aridad 2, como todas por ahora
 fun :: Type
@@ -75,11 +83,49 @@ defnPrint = GlobalDefinition $ functionDefaults {
   , returnType = integer
   }
 
+mklistTy :: Type
+mklistTy = PointerType (FunctionType lptr [integer, lptr] False) -- true -> vararg
+                       (LLVM.AST.AddrSpace.AddrSpace 0)
+
+defnMklist :: Definition
+defnMklist = GlobalDefinition $ functionDefaults {
+    name = mkName "pcf_mklist"
+  , parameters = ([Parameter integer (mkName "x") [], Parameter lptr (mkName "xs") []], False)
+  , linkage = L.External
+  , returnType = lptr
+  }
+
+tailTy :: Type
+tailTy = PointerType (FunctionType lptr [lptr] False) (LLVM.AST.AddrSpace.AddrSpace 0)
+
+defnTail :: Definition
+defnTail = GlobalDefinition $ functionDefaults {
+    name = mkName "pcf_tail"
+  , parameters = ([Parameter lptr (mkName "l") []], False)
+  , linkage = L.External
+  , returnType = lptr
+  }
+
+headTy :: Type
+headTy = PointerType (FunctionType integer [lptr] False) (LLVM.AST.AddrSpace.AddrSpace 0)
+
+
+defnHead :: Definition
+defnHead = GlobalDefinition $ functionDefaults {
+    name = mkName "pcf_head"
+  , parameters = ([Parameter lptr (mkName "l") []], False)
+  , linkage = L.External
+  , returnType = integer 
+  }
+
+defnListTy :: Definition 
+defnListTy = TypeDefinition (mkName "list") (Just list)
+
 emptyModule :: Module
 emptyModule =
   defaultModule {
       moduleName = fromString "pcfprog"
-    , moduleDefinitions = [defnMkclosure, defnPrint]
+    , moduleDefinitions = [defnHead, defnTail, defnMklist, defnMkclosure, defnPrint, defnListTy]
   }
 
 codegen :: CanonProg -> Module
@@ -98,7 +144,7 @@ cgFun (f, args, blocks) =
       name        = Name (fromString f)
     , parameters  = ([Parameter ptr (mkName nm) [] | nm <- args], False)
     , basicBlocks = llvmBlocks
-    , returnType  = ptr
+    , returnType  = if f == "pcfmain" then lptr else ptr
   }
 
 cgVal :: CanonVal -> Definition
@@ -219,7 +265,23 @@ cgExpr (BinOp Lang.Div v1 v2) = do
                []]
   return (IntToPtr (LocalReference integer r) ptr [])
 
-cgExpr (UnOp _ _) = undefined -- no hay mas unary ops
+
+
+-- cgExpr (UnOp Lang.Tail l) = do
+--   v <- cgV l
+--   n <- freshName
+--   tell [ n:= BitCast v lptr []] -- CIR registers dont have a type fuck this
+--   return $ LLVM.AST.Call Nothing CC.C []
+--                 (Right (global (mkName "pcf_tail") tailTy))
+--                 [(LocalReference lptr n, [])] [][]
+-- 
+-- cgExpr (UnOp Lang.Head l) = do
+--   v <- cgV l
+--   return $ LLVM.AST.Call Nothing CC.C []
+--                 (Right (global (mkName "pcf_head") headTy))
+--                 [(v, [])] [][]
+
+cgExpr (UnOp _ _) = error "No definido" -- no hay mas unary ops
 
 -- cgExpr (UnOp Lang.Succ v) = do
 --   cgExpr (BinOp Lang.Plus v (C 1)) -- trucho
@@ -285,6 +347,20 @@ cgV (C i) = do
   n <- freshName
   tell [n := IntToPtr (cint i) ptr []]
   return $ LocalReference ptr n
+
+cgV (L l) = do
+  n <- freshName
+  n1 <- freshName
+  case l of
+    []   -> tell [n := IntToPtr zero lptr []]
+    x:xs -> do
+      v1 <- cgV $ C x 
+      v2 <- cgV $ L xs
+      tell [n1 := PtrToInt v1 integer [],
+            n := LLVM.AST.Call Nothing CC.C []
+                (Right (global (mkName "pcf_mklist") mklistTy))
+                [(LocalReference integer n1, []), (v2, [])] [][]]
+  return $ LocalReference lptr n
 
 cgV (G nm) = do
   r <- freshName

@@ -15,7 +15,7 @@ import CIR
 import ClosureConv
 import Control.Monad.State (MonadState(get), modify, StateT(runStateT))
 import Control.Monad.Writer (runWriter, MonadWriter(tell), Writer)
-import Lang ( Const(CNat) )
+import Lang ( Const(CNat, CLNat) )
 import Data.List (isPrefixOf)
 
 -- ----------------------------------------------------
@@ -92,6 +92,12 @@ translate term = case term of
           then return $ R (Temp x)
           else return $ G x
   IrConst (CNat x)  -> return $ C x
+  IrConst (CLNat xs)  -> return $ L xs
+  IrUnaryOp op t -> do
+      r <- getNew
+      v <- translate t
+      makeInst $ Assign r $ UnOp op v
+      return $ R r
   IrBinaryOp op t1 t2 -> do
       r1 <- getNew
       r2 <- getNew

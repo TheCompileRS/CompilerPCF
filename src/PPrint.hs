@@ -65,6 +65,7 @@ ppName = id
 -- | Pretty printer para tipos (Doc)
 ty2doc :: Ty -> Doc
 ty2doc NatTy     = text "Nat"
+ty2doc NatListTy = text "[Nat]"
 ty2doc (FunTy x@(FunTy _ _) y) = sep [parens (ty2doc x),text "->",ty2doc y]
 ty2doc (FunTy x y) = sep [ty2doc x,text "->",ty2doc y]
 
@@ -74,6 +75,7 @@ ppTy = render . ty2doc
 
 c2doc :: Const -> Doc
 c2doc (CNat n) = text (show n)
+c2doc (CLNat xs) = text (show xs)
 
 unary2doc :: UnaryOp -> Doc
 unary2doc Succ = text "succ"

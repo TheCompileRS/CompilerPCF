@@ -14,7 +14,7 @@ import Data.List (intercalate)
 newtype Reg = Temp String
   deriving Show
 
-data Val = R Reg | C Int | G Name
+data Val = R Reg | C Int | G Name | L [Int]
   deriving Show
 
 type Loc = String

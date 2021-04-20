@@ -28,13 +28,13 @@ tc (V p (Bound _)) _ = failPosPCF p "typecheck: No deberia haber variables Bound
 tc (V p (Free n)) bs = case lookup n bs of
                            Nothing -> failPosPCF p $ "Variable no declarada "++ppName n
                            Just ty -> return ty 
-tc (Const _ (CNat _)) _ = return NatTy
+tc (Const _ (CNat _)) _ =  return NatTy
+tc (Const _ (CLNat _)) _ = return NatListTy
 
--- UnaryOp inactive
--- tc (UnaryOp _ _ t) bs = do 
---       ty <- tc t bs
---       expect NatTy ty t
-
+tc (UnaryOp _ op t) bs = do 
+      ty <- tc t bs
+      expect (unaryType op) ty t
+ 
 -- shortcut which will break silently if we extend the language
 tc (BinaryOp _ _ t1 t2) bs = do 
       ty1 <- tc t1 bs
@@ -70,7 +70,12 @@ tc (Let p x xt t1 t2) bs = do
         expect xt t1ty t1
         tc (open x t2) ((x,xt):bs)
 
-
+unaryType :: UnaryOp -> Ty
+unaryType op = case op of
+  Succ -> NatTy 
+  Pred -> NatTy 
+  Head -> NatListTy 
+  Tail -> NatListTy
 
 -- | @'typeError' t s@ lanza un error de tipo para el término @t@ 
 typeError :: MonadPCF m => Term   -- ^ término que se está chequeando  

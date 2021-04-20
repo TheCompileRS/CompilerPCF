@@ -21,6 +21,7 @@ data IrTerm = IrVar Name
             | IrCall IrTerm [IrTerm]
             | IrConst Const
             | IrBinaryOp BinaryOp IrTerm IrTerm
+            | IrUnaryOp UnaryOp IrTerm
             | IrLet Name IrTerm IrTerm
             | IrIfZ IrTerm IrTerm IrTerm
             | MkClosure Name [IrTerm]
@@ -67,8 +68,8 @@ closureConvert term = case term of
     App _ f x           -> do f' <- closureConvert f
                               x' <- closureConvert x
                               return $ IrCall (IrAccess f' 0) [f', x']
-    -- UnaryOp inactive
-    -- UnaryOp {}          -> error "unary operators should have been translated to binary"
+    UnaryOp _ op t      -> do t' <- closureConvert t
+                              return $ IrUnaryOp op t'
     BinaryOp _ op t1 t2 -> do t1' <- closureConvert t1
                               t2' <- closureConvert t2
                               return $ IrBinaryOp op t1' t2'

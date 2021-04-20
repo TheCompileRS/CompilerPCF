@@ -32,7 +32,7 @@ lexer = Tok.makeTokenParser $
          commentLine    = "#",
          reservedNames = ["let", "fun", "fix", "then", "else",
                           "succ", "pred", "ifz", "Nat", "rec", "in", "type"],
-         reservedOpNames = ["->", ":", "=", "+", "-", "*", "/"],
+         reservedOpNames = ["->", ":", "=", "+", "-", "*", "/", ","],
          caseSensitive = True
         }
 
@@ -44,6 +44,9 @@ natural = Tok.natural lexer
 
 parens :: P a -> P a
 parens = Tok.parens lexer
+
+brackets :: P a -> P a
+brackets = Tok.brackets lexer
 
 identifier :: P String
 identifier = Tok.identifier lexer
@@ -79,8 +82,9 @@ tyVar = SSynTy <$> tyName
 
 tyatom :: P STy
 tyatom = (reserved "Nat" >> return SNatTy)
-         <|> parens typeP
-         <|> tyVar
+      <|> (brackets (reserved "Nat") >> return SNatListTy)
+      <|> parens typeP
+      <|> tyVar
 
 typeP :: P STy
 typeP = try (do
@@ -99,13 +103,19 @@ declTypeP = do
     ty <- typeP
     return $ SDeclType i name ty
 
+list :: P [Int]
+list = brackets $ num `sepBy` reservedOp ","
+
 const :: P Const
 const = CNat <$> num
+    <|> CLNat <$> list
 
 unaryOpName :: P UnaryOp
 unaryOpName =
       (reserved "succ" *> return Succ)
   <|> (reserved "pred" *> return Pred)
+  <|> (reserved "head" *> return Head)
+  <|> (reserved "tail" *> return Tail)
 
 unaryOp :: P STerm
 unaryOp = do

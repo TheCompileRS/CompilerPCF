@@ -26,20 +26,23 @@ type Name = String
 -- | AST de tipos
 data Ty =
       NatTy
+    | NatListTy
     | FunTy Ty Ty
     deriving (Show,Eq)
 
 -- | AST de tipos azucarados
 data STy =
       SNatTy
+    | SNatListTy
     | SFunTy STy STy
     | SSynTy Name
     deriving (Show,Eq)
 
 data Const = CNat Int
+           | CLNat [Int]
   deriving Show
 
-data UnaryOp = Succ | Pred
+data UnaryOp = Succ | Pred | Head | Tail
   deriving Show
 
 data BinaryOp = Plus
@@ -91,7 +94,7 @@ data Tm info ty var =
   | Const info Const
   | Lam info Name ty (Tm info ty var)
   | App info (Tm info ty var) (Tm info ty var)
-  --- | UnaryOp info UnaryOp (Tm info ty var)   -- UnaryOp inactive
+  | UnaryOp info UnaryOp (Tm info ty var)
   | BinaryOp info BinaryOp (Tm info ty var) (Tm info ty var)
   | Fix info Name ty Name ty (Tm info ty var)
   | IfZ info (Tm info ty var) (Tm info ty var) (Tm info ty var)
