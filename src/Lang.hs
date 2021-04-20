@@ -49,6 +49,7 @@ data BinaryOp = Plus
               | Minus
               | Times
               | Div
+              | Cons
   deriving Show
 
 type MultiBinder = [([Name], STy)]
@@ -149,3 +150,4 @@ binOpSym op = case op of
   Minus   -> "-"
   Times   -> "*"
   Div     -> "/"
+  Cons    -> ":"

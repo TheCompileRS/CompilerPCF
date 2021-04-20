@@ -35,7 +35,13 @@ tc (UnaryOp _ op t) bs = do
       ty <- tc t bs
       expect (unaryType op) ty t
       return $ unaryRetType op
- 
+
+tc (BinaryOp _ Cons t1 t2) bs = do 
+      ty1 <- tc t1 bs
+      ty2 <- tc t2 bs
+      expect NatTy ty1 t1
+      expect NatListTy ty2 t2
+      
 -- shortcut which will break silently if we extend the language
 tc (BinaryOp _ _ t1 t2) bs = do 
       ty1 <- tc t1 bs

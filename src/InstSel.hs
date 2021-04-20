@@ -84,13 +84,12 @@ defnPrint = GlobalDefinition $ functionDefaults {
   }
 
 mklistTy :: Type
-mklistTy = PointerType (FunctionType ptr [integer, ptr] False) -- true -> vararg
-                       (LLVM.AST.AddrSpace.AddrSpace 0)
+mklistTy = fptr
 
 defnMklist :: Definition
 defnMklist = GlobalDefinition $ functionDefaults {
     name = mkName "pcf_mklist"
-  , parameters = ([Parameter integer (mkName "x") [], Parameter ptr (mkName "xs") []], False)
+  , parameters = ([Parameter ptr (mkName "x") [], Parameter ptr (mkName "xs") []], False)
   , linkage = L.External
   , returnType = ptr
   }
@@ -264,7 +263,12 @@ cgExpr (BinOp Lang.Div v1 v2) = do
                []]
   return (IntToPtr (LocalReference integer r) ptr [])
 
-
+cgExpr (BinOp Lang.Cons l1 l2) = do
+  v1 <- cgV l1
+  v2 <- cgV l2
+  return $ LLVM.AST.Call Nothing CC.C []
+                (Right (global (mkName "pcf_mklist") mklistTy))
+                [(v1, []), (v2, [])] [][]
 
 cgExpr (UnOp Lang.Tail l) = do
   v <- cgV l
@@ -347,16 +351,14 @@ cgV (C i) = do
 
 cgV (L l) = do
   n <- freshName
-  n1 <- freshName
   case l of
     []   -> tell [n := IntToPtr zero ptr []]
     x:xs -> do
       v1 <- cgV $ C x 
       v2 <- cgV $ L xs
-      tell [n1 := PtrToInt v1 integer [],
-            n := LLVM.AST.Call Nothing CC.C []
+      tell [n := LLVM.AST.Call Nothing CC.C []
                 (Right (global (mkName "pcf_mklist") mklistTy))
-                [(LocalReference integer n1, []), (v2, [])] [][]]
+                [(v1, []), (v2, [])] [][]]
   return $ LocalReference ptr n
 
 cgV (G nm) = do

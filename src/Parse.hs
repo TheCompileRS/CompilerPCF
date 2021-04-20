@@ -192,13 +192,16 @@ fix = do i <- getPos
 
 -- | Parser de términos
 tm :: P STerm
-tm = chainl1 tmTerm (choice $ map binaryOp [Plus, Minus])
+tm = chainr1 tm_1 (binaryOp Cons)
 
-tmTerm :: P STerm
-tmTerm = chainl1 tmFactor (choice $ map binaryOp [Times, Div])
+tm_1 :: P STerm
+tm_1 = chainl1 tm_2 (choice $ map binaryOp [Plus, Minus])
 
-tmFactor :: P STerm
-tmFactor = try unaryOp <|> app <|> lam <|> ifz <|>  fix <|> try letFix <|> try letIn <|> letLam
+tm_2 :: P STerm
+tm_2 = chainl1 tm_3 (choice $ map binaryOp [Times, Div])
+
+tm_3 :: P STerm
+tm_3 = try unaryOp <|> app <|> lam <|> ifz <|>  fix <|> try letFix <|> try letIn <|> letLam
 
 letIn :: P STerm
 letIn = do

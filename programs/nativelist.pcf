@@ -1,3 +1,7 @@
+let merge (l1 l2 : [Nat]) : [Nat] = l1
+
+
 let x : [Nat] = tail [1, 2, 3, 4, 5]
 let y : Nat = head x
-let z : [Nat] = tail (tail x)
+let z : [Nat] = merge (y : 1 : tail (tail x)) []
+
