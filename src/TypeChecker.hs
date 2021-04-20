@@ -34,6 +34,7 @@ tc (Const _ (CLNat _)) _ = return NatListTy
 tc (UnaryOp _ op t) bs = do 
       ty <- tc t bs
       expect (unaryType op) ty t
+      return $ unaryRetType op
  
 -- shortcut which will break silently if we extend the language
 tc (BinaryOp _ _ t1 t2) bs = do 
@@ -76,6 +77,11 @@ unaryType op = case op of
   Pred -> NatTy 
   Head -> NatListTy 
   Tail -> NatListTy
+
+unaryRetType :: UnaryOp -> Ty
+unaryRetType op = case op of
+  Tail -> NatListTy
+  _ -> NatTy
 
 -- | @'typeError' t s@ lanza un error de tipo para el término @t@ 
 typeError :: MonadPCF m => Term   -- ^ término que se está chequeando  

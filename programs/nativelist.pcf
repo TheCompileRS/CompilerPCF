@@ -1,1 +1,3 @@
 let x : [Nat] = tail [1, 2, 3, 4, 5]
+let y : Nat = head x
+let z : [Nat] = tail (tail x)

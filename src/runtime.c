@@ -35,14 +35,12 @@ void *pcf_mkclosure(void *fun, int amt, ...)
 	return res;
 }
 
-struct NatList * pcf_mklist(uint64_t *x, struct NatList *xs)
+struct NatList * pcf_mklist(uint64_t x, struct NatList *xs)
 {
 	struct NatList *res = GC_MALLOC(sizeof (struct NatList));
 	*res = (struct NatList){x, xs};
 	return res;
 }
-
-
 
 extern struct NatList* pcfmain(void);
 
