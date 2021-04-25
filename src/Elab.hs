@@ -21,10 +21,9 @@ import MonadPCF (failPCF, MonadPCF, lookupTyDef, addTyDef)
 -- transformándolo en un término con índices de de Bruijn 
 elab :: MonadPCF m => STerm -> m Term
 elab t1 = do
-    t2 <- return $ desugarTerm t1
+    let t2 = desugarTerm t1
     t3 <- resolveTypesTerm t2
-    t4 <- return $ bruijnize t3
-    return t4
+    return $ bruijnize t3
 
 
 -- | 'elabDecl' elabora declaraciones, quitándoles el azucar sintáctico y resolviendo su tipo
@@ -33,7 +32,7 @@ elabDecl decl = case decl of
     SDeclType _ name ty -> do ty' <- resolveType ty
                               addTyDef name ty'
                               return Nothing
-    _ -> do decl2 <- return $ desugarDecl decl
+    _ -> do let decl2 = desugarDecl decl
             decl3 <- resolveTypesDecl decl2
             return $ Just decl3
 

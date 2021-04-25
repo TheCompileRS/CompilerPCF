@@ -3,7 +3,6 @@ Module      : Main
 Description : Compilador de PCF.
 Copyright   : (c) Mauro Jaskelioff, Guido Martínez, Román Castellarin, Sebastián Zimmermann, 2020.
 License     : GPL-3
-Maintainer  : mauro@fceia.unr.edu.ar
 Stability   : experimental
 
 -}
