@@ -1,7 +1,7 @@
 {-|
 Module      : CIR
 Description : Representación a bajo nivel
-Copyright   : (c) Mauro Jaskelioff, Guido Martínez, Román Castellarin, Sebastián Zimmermann 2021.
+Copyright   : (c) Mauro Jaskelioff, Guido Martínez, Román Castellarin, Sebastián Zimmermann 2020-2021.
 License     : GPL-3
 Stability   : experimental
 -}

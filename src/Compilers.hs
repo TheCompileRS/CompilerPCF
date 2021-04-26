@@ -1,7 +1,7 @@
 {-|
 Module      : Compilers
 Description : Scripts de compilacion de PCF.
-Copyright   : (c) Román Castellarin, Sebastián Zimmermann, Mauro Jaskelioff, Guido Martínez, 2021.
+Copyright   : (c) Román Castellarin, Sebastián Zimmermann, Mauro Jaskelioff, Guido Martínez, 2020-2021.
 License     : GPL-3
 Stability   : experimental
 
@@ -34,7 +34,7 @@ import LLVM.Pretty (ppllvm)
 import System.Process (system)
 import Bytecompile (bcRead, runBC, bytecompileModule, bcWrite)
 
--- | Compilation Options
+-- | Opciones de compilacion
 data CompilationOptions = CompilationOptions {
       showBase :: Bool,
       showDesugar :: Bool,
@@ -46,18 +46,18 @@ data CompilationOptions = CompilationOptions {
       nOpt :: Int
 }
 
--- | Run a parser, raising exceptions in case of error
+-- | Ejecuta un parser, levanta una excepcion si hay error
 parseIO ::  MonadPCF m => String -> P a -> String -> m a
 parseIO filename p x = case runP p x filename of
                   Left e  -> throwError (ParseErr e)
                   Right r -> return r  
 
--- | Remove whitespace from string ends
+-- | Remueve el espacio blanco cuando termina la cadena
 trim :: String -> String 
 trim = dropWhileEnd isSpace . dropWhile isSpace
 
--- | Read contents of file
--- nothrow: in case of error prints message and returns empty string
+-- | Lee el contenido del archivo
+-- nothrow: en caso de error imprime el resultado y retorna cadena vacia
 openFilePCF :: MonadPCF m => String -> m String
 openFilePCF filename = do
     printPCF $ "Abriendo " ++ filename ++ "..."
@@ -66,33 +66,32 @@ openFilePCF filename = do
                        hPutStr stderr $ "No se pudo abrir el archivo " ++ filename ++ ": " ++ err ++ "\n"
                        return "")
 
--- | Load list of files into memory
+-- | Carga lista de archivos en memoria
 loadFiles :: MonadPCF m => Bool -> [String] -> m ()
 loadFiles showCode = mapM_ $ \filename -> do
         modify (\s -> s { lfile = filename, inter = False })
         loadFile showCode filename
 
--- | Load file into memory
+-- | Carga archivo en memoria
 loadFile ::  MonadPCF m => Bool -> String -> m ()
 loadFile showCode filename = do
-    -- read contents
+    -- lee contenido
     contents <- openFilePCF filename
     decls <- parseIO filename program contents
-    -- show base code
+    -- muestra codigo base
     when showCode $ do
-        -- TODO should we print this or pretty print?
         printPCF $ "\nBASE CODE " ++ filename ++ "\n" 
         printPCF $ intercalate "\n" $ show <$> decls
-    -- typechecking and elaboration
+    -- typecheck y elaboracion
     mapM_ handleDecl decls
 
--- | Process declaration and keep it in memory 
+-- | Procesa declaraciones y las guarda en memoria 
 handleDecl ::  MonadPCF m => SDecl STerm -> m ()
 handleDecl decl = do
-  d_elab <- elabDecl decl -- elaboration
+  d_elab <- elabDecl decl -- elaboracion
   forM_ d_elab $ \d -> do
-      tcDecl d   -- typechecking
-      addDecl d  -- storing
+      tcDecl d   -- typecheck
+      addDecl d  -- guardado
 
 typechecking :: MonadPCF m => [String] -> m ()
 typechecking files = do 
@@ -102,48 +101,48 @@ typechecking files = do
         failPCF "Sin declaraciones."
     printPCF "El programa tipa correctamente."
 
--- | General compilation
+-- | Compilacion general 
 compilation :: MonadPCF m => CompilationOptions -> [String] -> m ()
 compilation opts files = do
-    -- read files
+    -- lee archivo
     loadFiles (showBase opts) $ trim <$> files
-    -- retreive processed declarations
+    -- busca declaraciones procesadas
     ds_elab <- reverse . glb <$> get
     when (null ds_elab) $
         failPCF "Sin declaraciones."
-    -- show desugared code
+    -- muestra codigo desazucarado
     when (showDesugar opts) $
         printPCF $ ("\nDESUGARED CODE\n" ++) $ intercalate "\n" $ show <$> ds_elab
-    -- optimization
+    -- optimizaciones
     let optimizer = InlineExpansion.optimize 
                   . DeadCode.optimize 
                   . ConstantFolding.optimize
     let ds_opt = iterate optimizer ds_elab !! nOpt opts
-    -- show optimized code
+    -- muestra codigo optimizado
     when (showOptimized opts) $
         printPCF $ ("\nOPTIMIZED CODE\n" ++) $ intercalate "\n" $ show <$> ds_opt
     -- closure conversion
     let ds_closure = runCC ds_opt
-    -- show closures
+    -- muestra clausuras
     when (showClosures opts) $
         printPCF $ ("\nCLOSURE CONVERSIONS\n" ++) $ intercalate "\n" $ show <$> ds_closure
     -- canonization
     let ds_canon = runCanon ds_closure
-    -- show closures
+    -- muestra clausuras
     when (showCanonized opts) $
         printPCF $ "\nCANONIZED CODE\n" ++ show ds_canon
-    -- intermediate representation
+    -- representation intermedia (IR)
     let ds_ir = codegen ds_canon
-    -- show IR
+    -- muestra IR
     when (showIR opts) $
         printPCF $ "\nINTERMEDIATE REPRESENTATION\n" ++ show ds_ir
-    -- LLVM translation
+    -- traduccion LLVM
     let ds_llvm = ppllvm ds_ir
     liftIO $ TIO.writeFile "output.ll" ds_llvm
-    -- show LLVM
+    -- muestra LLVM
     when (showLLVM opts) $
         printPCF $ "\nLLVM PROGRAM\n" ++ (read . show) ds_llvm
-    -- LLVM compilation
+    -- compilacion LLVM 
     let commandline = "clang -Wno-override-module output.ll src/runtime.c -lgc -o prog"
     liftIO $ system commandline
     printPCF "Compilación exitosa!!"

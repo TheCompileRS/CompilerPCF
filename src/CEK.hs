@@ -1,7 +1,7 @@
 {-|
 Module      : CEK
 Description : AST de componentes de la máquina abstracta CEK, junto con las funciones de búsqueda y reducción.
-Copyright   : (c) Román Castellarin, Sebastián Zimmermann 2020.
+Copyright   : (c) Román Castellarin, Sebastián Zimmermann 2020-2021.
 License     : GPL-3
 Stability   : experimental
 -}
