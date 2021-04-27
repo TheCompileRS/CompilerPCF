@@ -24,8 +24,6 @@ import qualified LLVM.AST.Constant as C
 import qualified LLVM.AST.CallingConvention as CC
 import qualified LLVM.AST.IntegerPredicate as IP
 
-import Debug.Trace ( trace )
-
 i1 :: Type
 i1 = IntegerType 1
 

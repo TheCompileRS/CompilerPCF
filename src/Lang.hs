@@ -151,3 +151,4 @@ binOpSym op = case op of
   Times   -> "*"
   Div     -> "/"
   Cons    -> ":"
+  
