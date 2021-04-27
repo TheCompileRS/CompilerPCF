@@ -11,12 +11,9 @@ Setup is done via [stack](https://docs.haskellstack.org/en/stable/README/).
 
 ## Installation:
 
-You can install the compiler with stack, using
-
 ```code
 stack setup
 stack build
-stack install
 ```
 
 ## Usage:
@@ -24,40 +21,28 @@ stack install
 Generally
 ```
 compiler-exe [(-t|--typecheck) 
-            | (-w|--bytecompile) 
+            | (-b|--bytecompile) 
             | (-r|--run) 
-            | --cc 
-            | (-c|--compile) 
-                      [--show-base] 
-                      [--show-desugar] 
-                      [--show-optimized] 
-                      [--show-closures] 
-                      [--show-canonized] 
-                      [--show-llvm] 
-                      [--n-opt ARG] 
-            | (-i|--interactive)] 
+            | (-i|--interactive) 
+            | [-c|--compile] 
+                [--show-base] 
+                [--show-desugar] 
+                [--show-optimized] 
+                [--show-closures] 
+                [--show-canonized] 
+                [--show-ir] 
+                [--show-llvm] 
+                [--n-opt ARG]] 
         [FILES...]
 ```
 
-You can run with 
+Or you can run with 
 
 ```code
 stack run
 ```
 
-Or you can compile with byte compilation using:
-
-```code
-stack run -- --bytecompile file.pcf
-```
-
-And then you can use the Virtual machine in Haskell to execute the .byte with:
-
-```code
-stack run -- --run file.byte
-```
-
-Or, using the C version with:
+For running bytecode --in addition to the built-in virtual machine-- we provide a stand-alone C version with better performance:
 
 ```code
 gcc bvm.c -o bvm
@@ -74,7 +59,7 @@ List of sample programs:
 | opt_dc.pcf | Dead Code Optimization |
 | opt_ie.pcf | Inline Expansion Optimization |
 | binops.pcf | Binary Operators precedence, 64-bit calculations |
-| PAIRS.PCF | COMPLETAR Declare type synonyms |
+| pairs.pcf | Declare type synonyms |
 
 ### License
 
