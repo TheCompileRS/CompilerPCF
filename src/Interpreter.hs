@@ -3,7 +3,7 @@
 {-|
 Module      : Interpreter
 Description : Entorno interactivo de PCF.
-Copyright   : (c) Román Castellarin, Sebastián Zimmermann, Mauro Jaskelioff, Guido Martínez, 2021.
+Copyright   : (c) Román Castellarin, Sebastián Zimmermann, Mauro Jaskelioff, Guido Martínez, 2020-2021.
 License     : GPL-3
 Stability   : experimental
 

@@ -1,7 +1,7 @@
 {-|
 Module      : Typechecker
 Description : Chequeo de tipos de términos y declaraciones.
-Copyright   : (c) Mauro Jaskelioff, Guido Martínez, Román Castellarin, Sebastián Zimmermann 2020.
+Copyright   : (c) Mauro Jaskelioff, Guido Martínez, Román Castellarin, Sebastián Zimmermann 2020-2021.
 License     : GPL-3
 Stability   : experimental
 

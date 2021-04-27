@@ -1,0 +1,14 @@
+# pares de naturales
+type PairNat = Nat -> Nat
+
+let pair (x y: Nat) : PairNat = fun (b: Nat) -> ifz b then x else y   
+let fst (p: PairNat) : Nat = p 0
+let snd (p: PairNat) : Nat = p 1
+
+let fib (n: Nat): Nat = let
+       rec fibaux (n: Nat) (p: PairNat): Nat = 
+            ifz n then fst p else fibaux (n-1) (pair (snd p) (fst p + snd p))
+    in fibaux n (pair 0 1)
+
+# fib(40) = 102334155
+let ans: Nat = fib 40

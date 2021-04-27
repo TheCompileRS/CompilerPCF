@@ -1,11 +1,10 @@
 {-# LANGUAGE FlexibleInstances #-}
-
 {-# LANGUAGE FlexibleContexts #-}
 
 {-|
 Module      : MonadPCF
 Description : Mónada con soporte para estado, errores, e IO.
-Copyright   : (c) Mauro Jaskelioff, Guido Martínez, Román Castellarin, Sebastián Zimmermann 2020.
+Copyright   : (c) Mauro Jaskelioff, Guido Martínez, Román Castellarin, Sebastián Zimmermann 2020-2021.
 License     : GPL-3
 Stability   : experimental
 

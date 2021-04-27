@@ -1,7 +1,7 @@
 {-|
 Module      : InstSel
 Description : Compilación a LLVM
-Copyright   : (c) Mauro Jaskelioff, Guido Martínez, Román Castellarin, Sebastián Zimmermann 2021.
+Copyright   : (c) Mauro Jaskelioff, Guido Martínez, Román Castellarin, Sebastián Zimmermann 2020-2021.
 License     : GPL-3
 Stability   : experimental
 -}
@@ -197,7 +197,6 @@ one :: Operand
 one = cint 1
 
 cgExpr :: CIR.Expr -> M LLVM.AST.Instruction
--- FIXME: duplicación
 cgExpr (BinOp Lang.Plus v1 v2) = do
   v1 <- cgV v1
   v2 <- cgV v2

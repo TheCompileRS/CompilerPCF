@@ -2,7 +2,7 @@
 {-|
 Module      : InlineExpansion
 Description : Optimizacion de inline expansion
-Copyright   : (c) Román Castellarin, Sebastián Zimmermann 2021.
+Copyright   : (c) Román Castellarin, Sebastián Zimmermann 2020-2021.
 License     : GPL-3
 Stability   : experimental
 -}
@@ -31,7 +31,7 @@ size term = 1 + case term of
     Lam _ _ _ t        -> size t
     App _ t1 t2        -> size t1 + size t2
     BinaryOp _ _ t1 t2 -> size t1 + size t2
-    Fix _ _ _ _ _ t    -> size t -- 11? hackazo
+    Fix _ _ _ _ _ t    -> size t -- 11?
     Let _ _ _ t1 t2    -> size t1 + size t2
     IfZ _ t1 t2 t3     -> size t1 + size t2 + size t3
     t -> 0
