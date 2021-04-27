@@ -42,7 +42,7 @@ struct NatList * pcf_mklist(uint64_t x, struct NatList *xs)
 	return res;
 }
 
-extern struct NatList* pcfmain(void);
+extern uint64_t* pcfmain(void);
 
 void pcf_print_list(struct NatList *l) {
 	printf("[");
@@ -60,13 +60,13 @@ uint64_t pcf_head(struct NatList *l) {
 }
 
 int main (int argc, char **argv) {
-	/*uint64_t* rp = pcfmain();
-	uint64_t r = (uint64_t)rp;
-	pcf_print(r);*/
 
-	struct NatList *r = pcfmain();
-	pcf_print_list(r);
-	puts("");
-
+	void *r = pcfmain();
+	// heuristica muy mala
+	if( (uint64_t) r % 8 )
+		pcf_print((uint64_t) r);
+	else 
+		pcf_print_list((struct NatList *) r),
+		puts("");
 	return (int) r;
 }
